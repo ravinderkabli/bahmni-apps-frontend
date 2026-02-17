@@ -155,14 +155,11 @@ const MedicationsForm: React.FC = React.memo(() => {
 
     isSelectingRef.current = true;
     addMedication(selectedItem.medication, displayName);
-
     setSearchMedicationTerm('');
+    setSelectedMedicationItem(selectedItem);
     setTimeout(() => {
       isSelectingRef.current = false;
     }, 100);
-    addMedication(selectedItem.medication, selectedItem.displayName);
-    setSearchMedicationTerm('');
-    setSelectedMedicationItem(selectedItem);
   };
 
   const filteredSearchResults = useMemo(() => {
