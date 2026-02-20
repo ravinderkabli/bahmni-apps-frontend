@@ -1,7 +1,6 @@
 import { ProgramEnrollment } from '@bahmni/services';
 import {
   extractProgramAttributeNames,
-  createProgramHeader,
   createProgramDetailsViewModel,
 } from '../utils';
 
@@ -45,18 +44,6 @@ describe('Utils', () => {
     });
   });
 
-  describe('createProgramHeader', () => {
-    it('should convert field to SCREAMING_SNAKE_CASE with prefix', () => {
-      expect(createProgramHeader('programName')).toBe(
-        'PROGRAMS_TABLE_HEADER_PROGRAM_NAME',
-      );
-      expect(createProgramHeader('state')).toBe('PROGRAMS_TABLE_HEADER_STATE');
-      expect(createProgramHeader('dateEnrolled')).toBe(
-        'PROGRAMS_TABLE_HEADER_DATE_ENROLLED',
-      );
-    });
-  });
-
   describe('createProgramDetailsViewModel', () => {
     const mockEnrollment = (overrides: Partial<ProgramEnrollment> = {}) =>
       ({
@@ -67,6 +54,7 @@ describe('Utils', () => {
         outcome: null,
         states: [],
         attributes: [],
+        allowedStates: [],
         ...overrides,
       }) as ProgramEnrollment;
 
@@ -84,6 +72,7 @@ describe('Utils', () => {
         outcomeDetails: null,
         currentStateName: null,
         attributes: {},
+        allowedStates: [],
       });
     });
 
@@ -137,6 +126,38 @@ describe('Utils', () => {
       ]);
 
       expect(result.attributes['Missing Attribute']).toBeNull();
+    });
+
+    it('should map allowedStates with uuid and display from concept', () => {
+      const enrollment = mockEnrollment({
+        allowedStates: [
+          {
+            uuid: 'state-1',
+            concept: { display: 'Treatment Phase' },
+          } as any,
+          {
+            uuid: 'state-2',
+            concept: { display: 'Follow-up Phase' },
+          } as any,
+          { uuid: 'state-3', concept: { display: 'Completed' } } as any,
+        ],
+      });
+
+      const result = createProgramDetailsViewModel(enrollment, []);
+
+      expect(result.allowedStates).toEqual([
+        { uuid: 'state-1', display: 'Treatment Phase' },
+        { uuid: 'state-2', display: 'Follow-up Phase' },
+        { uuid: 'state-3', display: 'Completed' },
+      ]);
+    });
+
+    it('should handle empty allowedStates array', () => {
+      const enrollment = mockEnrollment({ allowedStates: [] });
+
+      const result = createProgramDetailsViewModel(enrollment, []);
+
+      expect(result.allowedStates).toEqual([]);
     });
   });
 });

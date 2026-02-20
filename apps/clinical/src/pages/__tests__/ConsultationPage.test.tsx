@@ -1,5 +1,9 @@
 import { useSidebarNavigation } from '@bahmni/design-system';
-import { useNotification } from '@bahmni/widgets';
+import {
+  NotificationProvider,
+  useNotification,
+  UserPrivilegeProvider,
+} from '@bahmni/widgets';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
@@ -653,6 +657,9 @@ describe('ConsultationPage', () => {
     (useDashboardConfig as jest.Mock).mockReturnValue({
       dashboardConfig: validDashboardConfig,
     });
+    (useNotification as jest.Mock).mockReturnValue({
+      addNotification: jest.fn(),
+    });
     const { useUserPrivilege } = jest.requireMock('@bahmni/widgets');
     (useUserPrivilege as jest.Mock).mockReturnValue({
       userPrivileges: ['Get Patients', 'Add Patients'],
@@ -681,7 +688,11 @@ describe('ConsultationPage', () => {
     });
 
     renderWithProvider(
-      <ConsultationPage />,
+      <NotificationProvider>
+        <UserPrivilegeProvider>
+          <ConsultationPage />
+        </UserPrivilegeProvider>
+      </NotificationProvider>,
       '/consultation?episodeUuid=test-episode&programUuid=test-program-uuid',
     );
 
