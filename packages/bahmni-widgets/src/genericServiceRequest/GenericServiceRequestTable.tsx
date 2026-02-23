@@ -23,7 +23,11 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { usePatientUUID } from '../hooks/usePatientUUID';
 import { useNotification } from '../notification';
 import { WidgetProps } from '../registry/model';
-import { ServiceRequestViewModel } from './models';
+import {
+  ServiceRequestViewModel,
+  ServiceRequestStatus,
+  STATUS_TRANSLATION_MAP,
+} from './models';
 import styles from './styles/GenericServiceRequestTable.module.scss';
 import { mapServiceRequest, sortServiceRequestsByPriority } from './utils';
 
@@ -210,20 +214,11 @@ const GenericServiceRequestTable: React.FC<WidgetProps> = ({
           return request.orderedBy;
         case 'status':
           return (
-            <>
-              {request.status === 'active' && (
-                <Tag type="outline">{t('IN_PROGRESS_STATUS')}</Tag>
+            <Tag type="outline">
+              {t(
+                STATUS_TRANSLATION_MAP[request.status as ServiceRequestStatus],
               )}
-              {request.status === 'completed' && (
-                <Tag type="outline">{t('COMPLETED_STATUS')}</Tag>
-              )}
-              {request.status === 'revoked' && (
-                <Tag type="outline">{t('REVOKED_STATUS')}</Tag>
-              )}
-              {request.status === 'unknown' && (
-                <Tag type="outline">{t('UNKNOWN_STATUS')}</Tag>
-              )}
-            </>
+            </Tag>
           );
 
         default:

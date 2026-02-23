@@ -21,6 +21,8 @@ export interface FormattedLabInvestigations {
   readonly note?: string;
   readonly reportId?: string; // DiagnosticReport ID if report exists
   readonly attachments?: Attachment[]; // For panel test attachments
+  readonly reportedBy?: string;
+  readonly reportedDate?: string;
 }
 
 export interface LabInvestigationsByDate {

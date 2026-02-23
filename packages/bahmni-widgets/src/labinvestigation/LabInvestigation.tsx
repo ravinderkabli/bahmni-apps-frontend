@@ -12,13 +12,17 @@ import {
   getDiagnosticReports,
   useSubscribeConsultationSaved,
 } from '@bahmni/services';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { DiagnosticReport } from 'fhir/r4';
 import React, { useMemo, useEffect, useState } from 'react';
 
 import { usePatientUUID } from '../hooks/usePatientUUID';
 import { useNotification } from '../notification';
 import { WidgetProps } from '../registry/model';
+import {
+  extractDiagnosticReportsFromBundle,
+  updateInvestigationsWithReportInfo,
+} from '../utils/Investigations';
 import LabInvestigationItem from './LabInvestigationItem';
 import { FormattedLabInvestigations, LabInvestigationsByDate } from './models';
 import styles from './styles/LabInvestigation.module.scss';
@@ -26,8 +30,6 @@ import {
   filterLabInvestigationEntries,
   formatLabInvestigations,
   groupLabInvestigationsByDate,
-  updateInvestigationsWithReportInfo,
-  extractDiagnosticReportsFromBundle,
   sortLabInvestigationsByPriority,
 } from './utils';
 
@@ -61,6 +63,8 @@ const LabInvestigation: React.FC<WidgetProps> = ({
   const [openAccordionIndices, setOpenAccordionIndices] = useState<Set<number>>(
     new Set([0]),
   );
+  const [currentOpenedAccordionIndex, setCurrentOpenedAccordionIndex] =
+    useState<number>(0);
 
   const emptyEncounterFilter = shouldEnableEncounterFilter(
     episodeOfCareUuids,
@@ -149,36 +153,35 @@ const LabInvestigation: React.FC<WidgetProps> = ({
   const isLoading = isLoadingOrderTypes || isLoadingLabInvestigations;
   const hasError = isOrderTypesError || isLabInvestigationsError;
 
-  // Group and sort tests first (before enrichment)
   const sortedLabInvestigations = useMemo<LabInvestigationsByDate[]>(() => {
     const groupedTests = groupLabInvestigationsByDate(labTests);
     return sortLabInvestigationsByPriority(groupedTests);
   }, [labTests]);
 
-  // Fetch diagnostic reports for each accordion separately to enable caching
-  const diagnosticReportQueries = useQueries({
-    queries: sortedLabInvestigations.map((group, index) => {
-      const testIds = group.tests.map((test) => test.id);
-      return {
-        queryKey: ['diagnosticReports', patientUUID, index, testIds],
-        queryFn: () => getDiagnosticReports(patientUUID!, testIds),
-        enabled:
-          !!patientUUID &&
-          openAccordionIndices.has(index) &&
-          testIds.length > 0,
-      };
-    }),
+  // Fetch diagnostic reports only for the most recently opened accordion
+  const currentAccordionGroup =
+    sortedLabInvestigations[currentOpenedAccordionIndex];
+  const testIds = currentAccordionGroup?.tests.map((test) => test.id) ?? [];
+
+  const { data: diagnosticReportsBundle } = useQuery({
+    queryKey: [
+      'diagnosticReports',
+      patientUUID,
+      currentOpenedAccordionIndex,
+      testIds,
+    ],
+    queryFn: () => getDiagnosticReports(patientUUID!, testIds),
+    enabled:
+      !!patientUUID &&
+      openAccordionIndices.has(currentOpenedAccordionIndex) &&
+      testIds.length > 0,
   });
 
-  // Merge all diagnostic reports from open accordions
   const diagnosticReports = useMemo<DiagnosticReport[]>(() => {
-    const reports = diagnosticReportQueries
-      .filter((query) => query.data)
-      .flatMap((query) => extractDiagnosticReportsFromBundle(query.data));
-    return reports;
-  }, [diagnosticReportQueries]);
+    if (!diagnosticReportsBundle) return [];
+    return extractDiagnosticReportsFromBundle(diagnosticReportsBundle);
+  }, [diagnosticReportsBundle]);
 
-  // Enrich the grouped tests with diagnostic report info (reportId and attachments)
   const updatedLabInvestigations = useMemo<LabInvestigationsByDate[]>(() => {
     return sortedLabInvestigations.map((group) => ({
       ...group,
@@ -226,6 +229,7 @@ const LabInvestigation: React.FC<WidgetProps> = ({
                 newSet.delete(index);
               } else {
                 newSet.add(index);
+                setCurrentOpenedAccordionIndex(index);
               }
               return newSet;
             });

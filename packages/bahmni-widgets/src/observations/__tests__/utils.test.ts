@@ -53,12 +53,14 @@ describe('observationUtils', () => {
       expect(result.observations[0]).toEqual({
         id: 'obs-1',
         display: 'Systolic blood pressure',
+        conceptId: '5085',
         observationValue: {
           value: 120,
           unit: 'mmHg',
           type: 'quantity',
           isAbnormal: false,
         },
+        sortId: '10-0',
         effectiveDateTime: '2026-01-19T12:35:58+00:00',
         issued: undefined,
         encounter: undefined,
@@ -73,6 +75,7 @@ describe('observationUtils', () => {
           type: 'codeable',
           isAbnormal: false,
         },
+        sortId: '25-1',
         effectiveDateTime: undefined,
         issued: undefined,
         encounter: undefined,
@@ -87,6 +90,7 @@ describe('observationUtils', () => {
           type: 'string',
           isAbnormal: false,
         },
+        sortId: '25-2',
         effectiveDateTime: undefined,
         issued: undefined,
         encounter: undefined,
@@ -129,10 +133,8 @@ describe('observationUtils', () => {
       expect(result.groupedObservations).toHaveLength(1);
       expect(result.observations).toHaveLength(0);
       expect(result.groupedObservations[0].display).toBe('Blood Pressure');
-      expect(result.groupedObservations[0].children).toHaveLength(1);
-      expect(result.groupedObservations[0].children[0].display).toBe(
-        'Systolic',
-      );
+      expect(result.groupedObservations[0].members).toHaveLength(1);
+      expect(result.groupedObservations[0].members[0].display).toBe('Systolic');
     });
 
     it('should handle observation without value type', () => {
@@ -170,8 +172,8 @@ describe('observationUtils', () => {
 
       expect(result.groupedObservations).toHaveLength(1);
       expect(result.groupedObservations[0].id).toBe('obs-parent');
-      expect(result.groupedObservations[0].children).toHaveLength(1);
-      expect(result.groupedObservations[0].children[0].id).toBe(
+      expect(result.groupedObservations[0].members).toHaveLength(1);
+      expect(result.groupedObservations[0].members[0].id).toBe(
         'obs-child-valid',
       );
     });

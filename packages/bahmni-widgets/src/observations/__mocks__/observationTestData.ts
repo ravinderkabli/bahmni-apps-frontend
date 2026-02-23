@@ -55,6 +55,12 @@ export const mockBundleWithCorrectValues: Bundle<Observation> = {
           text: 'Chief Complaint Record',
         },
         valueString: 'Fever, 2.0, Days',
+        extension: [
+          {
+            url: 'http://fhir.bahmni.org/ext/observation/form-namespace-path',
+            valueString: 'Bahmni^Registration Details.2/25-2',
+          },
+        ],
       },
     },
   ],

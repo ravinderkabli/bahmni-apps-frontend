@@ -6,11 +6,7 @@ import {
 } from '@bahmni/design-system';
 import { getValueType, useTranslation } from '@bahmni/services';
 import React from 'react';
-import {
-  ExtractedObservation,
-  GroupedObservation,
-  ObservationsByEncounter,
-} from '../models';
+import { ExtractedObservation, ObservationsByEncounter } from '../models';
 import { formatEncounterTitle, transformObservationToRowCell } from '../utils';
 
 export interface ObsByEncounterProps {
@@ -64,7 +60,7 @@ const renderObservation = (
 };
 
 const renderGroupedObservation = (
-  groupedObs: GroupedObservation,
+  groupedObs: ExtractedObservation,
   t: (key: string, options?: { provider?: string }) => string,
   isLatestEncounter: boolean,
   groupIndex: number,
@@ -78,7 +74,7 @@ const renderGroupedObservation = (
       id={`grouped-obs-${groupedObs.display}-${groupIndex}`}
       open={isLatestEncounter}
     >
-      {groupedObs.children.map((child, childIndex) =>
+      {groupedObs.members?.map((child, childIndex) =>
         renderObservation(child, childIndex, encounterIndex, title, t),
       )}
     </CollapsibleRowGroup>

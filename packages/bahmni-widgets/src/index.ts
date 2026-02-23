@@ -8,6 +8,7 @@ export { ConditionsTable } from './conditions';
 export { DiagnosesTable } from './diagnoses';
 export { MedicationsTable } from './medications';
 export { RadiologyInvestigationTable } from './radiologyInvestigation';
+export { RadiologyInvestigationReport } from './radiologyInvestigationReport';
 export { LabInvestigation } from './labinvestigation';
 export { SearchPatient } from './searchPatient';
 export { VitalFlowSheet } from './vitalFlowSheet';
