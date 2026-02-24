@@ -270,6 +270,108 @@ describe('observationUtils', () => {
       expect(result.observations[0].observationValue?.value).toBe(5);
       expect(result.observations[0].observationValue?.type).toBe('integer');
     });
+
+    it('should extract observation with valueDateTime and strip time portion', () => {
+      const bundle: Bundle<Observation> = {
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: [
+          {
+            resource: {
+              resourceType: 'Observation',
+              id: 'obs-datetime',
+              status: 'final',
+              code: { text: 'Date of Onset' },
+              valueDateTime: '2024-06-15T10:30:00+00:00',
+            },
+          },
+        ],
+      };
+
+      const result = extractObservationsFromBundle(bundle);
+      expect(result.observations[0].observationValue?.value).toBe('2024-06-15');
+      expect(result.observations[0].observationValue?.type).toBe('dateTime');
+      expect(result.observations[0].observationValue?.isAbnormal).toBe(false);
+    });
+
+    it('should extract observation with valueDateTime date-only format', () => {
+      const bundle: Bundle<Observation> = {
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: [
+          {
+            resource: {
+              resourceType: 'Observation',
+              id: 'obs-dateonly',
+              status: 'final',
+              code: { text: 'Date of Birth' },
+              valueDateTime: '2024-06-15',
+            },
+          },
+        ],
+      };
+
+      const result = extractObservationsFromBundle(bundle);
+      expect(result.observations[0].observationValue?.value).toBe('2024-06-15');
+      expect(result.observations[0].observationValue?.type).toBe('dateTime');
+    });
+
+    it('should extract observation with valueTime', () => {
+      const bundle: Bundle<Observation> = {
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: [
+          {
+            resource: {
+              resourceType: 'Observation',
+              id: 'obs-time',
+              status: 'final',
+              code: { text: 'Time of Medication' },
+              valueTime: '14:30:00',
+            },
+          },
+        ],
+      };
+
+      const result = extractObservationsFromBundle(bundle);
+      expect(result.observations[0].observationValue?.value).toBe('14:30:00');
+      expect(result.observations[0].observationValue?.type).toBe('time');
+      expect(result.observations[0].observationValue?.isAbnormal).toBe(false);
+    });
+
+    it('should mark valueDateTime as abnormal when interpretation is A', () => {
+      const bundle: Bundle<Observation> = {
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: [
+          {
+            resource: {
+              resourceType: 'Observation',
+              id: 'obs-datetime-abnormal',
+              status: 'final',
+              code: { text: 'Date of Onset' },
+              valueDateTime: '2024-06-15T10:30:00+00:00',
+              interpretation: [
+                {
+                  coding: [
+                    {
+                      system:
+                        'http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation',
+                      code: 'A',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const result = extractObservationsFromBundle(bundle);
+      expect(result.observations[0].observationValue?.value).toBe('2024-06-15');
+      expect(result.observations[0].observationValue?.type).toBe('dateTime');
+      expect(result.observations[0].observationValue?.isAbnormal).toBe(true);
+    });
   });
 
   describe('groupObservationsByEncounter', () => {

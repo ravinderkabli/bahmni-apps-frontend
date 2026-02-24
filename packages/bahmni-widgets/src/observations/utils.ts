@@ -127,6 +127,8 @@ function extractObservationValue(
     valueString,
     valueBoolean,
     valueInteger,
+    valueDateTime,
+    valueTime,
     referenceRange,
   } = observation;
 
@@ -183,6 +185,24 @@ function extractObservationValue(
     return {
       value: valueString,
       type: 'string',
+      isAbnormal,
+    };
+  }
+
+  if (valueDateTime) {
+    const parts = valueDateTime.split('T');
+    const dateOnly = parts[0];
+    return {
+      value: dateOnly || valueDateTime,
+      type: 'dateTime',
+      isAbnormal,
+    };
+  }
+
+  if (valueTime) {
+    return {
+      value: valueTime,
+      type: 'time',
       isAbnormal,
     };
   }

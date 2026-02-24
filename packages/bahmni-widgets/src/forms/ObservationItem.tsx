@@ -1,29 +1,57 @@
+import { ImageTile, VideoTile } from '@bahmni/design-system';
+import { getValueType } from '@bahmni/services';
 import classNames from 'classnames';
 import React from 'react';
-import { ObservationData } from './models';
+import { ExtractedObservation } from '../observations/models';
 import styles from './styles/FormsTable.module.scss';
 
 interface ObservationItemProps {
-  observation: ObservationData;
+  observation: ExtractedObservation;
   index: number;
   formName?: string;
+  comment?: string;
 }
 
 interface ObservationMemberProps {
-  member: ObservationData;
+  member: ExtractedObservation;
   depth?: number;
   memberIndex?: number;
   formName?: string;
+  comment?: string;
 }
 
 const INTERPRETATION_ABNORMAL = 'ABNORMAL';
+
+/**
+ * Helper function to render value with media support (images/videos)
+ */
+const renderValueWithMedia = (valueAsString: string): React.ReactNode => {
+  const valueType = getValueType(valueAsString);
+
+  if (valueType === 'Image') {
+    return (
+      <ImageTile
+        imageSrc={valueAsString}
+        alt={valueAsString}
+        id={`${valueAsString}-img`}
+      />
+    );
+  }
+
+  if (valueType === 'Video') {
+    return <VideoTile id={`${valueAsString}-video`} videoSrc={valueAsString} />;
+  }
+
+  return valueAsString;
+};
+
 /**
  * Utility function to get range string and abnormal status for an observation
  */
-const getObservationDisplayInfo = (observation: ObservationData) => {
-  const units = observation.concept?.units;
-  const lowNormal = observation.concept?.lowNormal;
-  const hiNormal = observation.concept?.hiNormal;
+const getObservationDisplayInfo = (observation: ExtractedObservation) => {
+  const units = observation.observationValue?.unit;
+  const lowNormal = observation.observationValue?.referenceRange?.low?.value;
+  const hiNormal = observation.observationValue?.referenceRange?.high?.value;
 
   const hasLow = lowNormal != null;
   const hasHigh = hiNormal != null;
@@ -37,9 +65,7 @@ const getObservationDisplayInfo = (observation: ObservationData) => {
           ? ` (<${hiNormal})`
           : '';
 
-  const isAbnormal =
-    observation.interpretation &&
-    observation.interpretation.toUpperCase() === INTERPRETATION_ABNORMAL;
+  const isAbnormal = observation.observationValue?.isAbnormal === true;
 
   return { units, rangeString, isAbnormal };
 };
@@ -52,12 +78,10 @@ const ObservationMember: React.FC<ObservationMemberProps> = ({
   depth = 0,
   memberIndex = 0,
   formName = '',
+  comment,
 }) => {
-  const hasGroupMembers = member.groupMembers && member.groupMembers.length > 0;
-  const displayLabel =
-    member.conceptNameToDisplay ??
-    member.concept?.shortName ??
-    member.concept?.name;
+  const hasGroupMembers = member.members && member.members.length > 0;
+  const displayLabel = member.display;
   const testIdPrefix = formName ? `${formName}-` : '';
 
   if (hasGroupMembers) {
@@ -79,9 +103,9 @@ const ObservationMember: React.FC<ObservationMemberProps> = ({
           className={styles.nestedGroupMembers}
           data-testid={`${testIdPrefix}obs-nested-group-members-${displayLabel}-${memberIndex}`}
         >
-          {member.groupMembers?.map((nestedMember, nestedIndex) => (
+          {member.members?.map((nestedMember, nestedIndex) => (
             <ObservationMember
-              key={`${nestedMember.concept.uuid}`}
+              key={`${nestedMember.id}`}
               member={nestedMember}
               depth={depth + 1}
               memberIndex={nestedIndex}
@@ -95,35 +119,54 @@ const ObservationMember: React.FC<ObservationMemberProps> = ({
 
   // Render as a leaf node (value) at current depth
   const { units, rangeString, isAbnormal } = getObservationDisplayInfo(member);
+  const valueAsString = member.observationValue?.value?.toString();
+  const valueToDisplay = valueAsString
+    ? renderValueWithMedia(valueAsString)
+    : null;
 
   return (
-    <div
-      className={styles.memberRow}
-      data-testid={`${testIdPrefix}obs-member-row-${displayLabel}-${memberIndex}`}
-      // eslint-disable-next-line react/forbid-dom-props
-      style={{ paddingLeft: `${depth * 16}px` }}
-    >
-      <p
-        className={classNames(
-          styles.memberLabel,
-          isAbnormal ? styles.abnormalValue : '',
-        )}
-        data-testid={`${testIdPrefix}obs-member-label-${displayLabel}-${memberIndex}`}
+    <>
+      <div
+        className={styles.memberRow}
+        data-testid={`${testIdPrefix}obs-member-row-${displayLabel}-${memberIndex}`}
+        // eslint-disable-next-line react/forbid-dom-props
+        style={{ paddingLeft: `${depth * 16}px` }}
       >
-        {displayLabel}
-        {rangeString}
-      </p>
-      <p
-        className={classNames(
-          styles.memberValue,
-          isAbnormal ? styles.abnormalValue : '',
-        )}
-        data-testid={`${testIdPrefix}obs-member-value-${displayLabel}-${memberIndex}`}
-      >
-        {member.valueAsString}
-        {units && ` ${units}`}
-      </p>
-    </div>
+        <p
+          className={classNames(
+            styles.memberLabel,
+            isAbnormal ? styles.abnormalValue : '',
+          )}
+          data-testid={`${testIdPrefix}obs-member-label-${displayLabel}-${memberIndex}`}
+        >
+          {displayLabel}
+          {rangeString}
+        </p>
+        <div
+          className={classNames(
+            styles.memberValue,
+            isAbnormal ? styles.abnormalValue : '',
+          )}
+          data-testid={`${testIdPrefix}obs-member-value-${displayLabel}-${memberIndex}`}
+        >
+          {valueToDisplay}
+          {units && ` ${units}`}
+        </div>
+      </div>
+      {comment && (
+        <div
+          className={styles.commentSection}
+          data-testid={`${testIdPrefix}obs-member-comment-${displayLabel}-${memberIndex}`}
+          // eslint-disable-next-line react/forbid-dom-props
+          style={{ paddingLeft: `${depth * 16}px` }}
+        >
+          <span className={styles.commentText}>
+            {comment}
+            {member.encounter?.provider && ` - by ${member.encounter.provider}`}
+          </span>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -131,35 +174,39 @@ export const ObservationItem: React.FC<ObservationItemProps> = ({
   observation,
   index,
   formName = '',
+  comment,
 }) => {
-  const hasGroupMembers =
-    observation.groupMembers && observation.groupMembers.length > 0;
+  const hasGroupMembers = observation.members && observation.members.length > 0;
 
   const { units, rangeString, isAbnormal } =
     getObservationDisplayInfo(observation);
 
   const testIdPrefix = formName ? `${formName}-` : '';
+  const valueAsString = observation.observationValue?.value?.toString();
+  const valueToDisplay = valueAsString
+    ? renderValueWithMedia(valueAsString)
+    : null;
 
   return (
     <div
-      key={`${observation.concept.uuid}-${index}`}
+      key={`${observation.id}-${index}`}
       className={styles.observation}
-      data-testid={`${testIdPrefix}observation-item-${observation.conceptNameToDisplay}-${index}`}
+      data-testid={`${testIdPrefix}observation-item-${observation.display}-${index}`}
     >
       <div
         className={
           hasGroupMembers ? styles.groupContainer : styles.rowContainer
         }
-        data-testid={`${testIdPrefix}observation-container-${observation.conceptNameToDisplay}-${index}`}
+        data-testid={`${testIdPrefix}observation-container-${observation.display}-${index}`}
       >
         <p
           className={classNames(
             hasGroupMembers ? styles.groupLabel : styles.rowLabel,
             !hasGroupMembers && isAbnormal ? styles.abnormalValue : '',
           )}
-          data-testid={`${testIdPrefix}observation-label-${observation.conceptNameToDisplay}-${index}`}
+          data-testid={`${testIdPrefix}observation-label-${observation.display}-${index}`}
         >
-          {observation.conceptNameToDisplay}
+          {observation.display}
           {!hasGroupMembers && rangeString && (
             <span className={styles.rangeInfo}>{rangeString}</span>
           )}
@@ -167,11 +214,11 @@ export const ObservationItem: React.FC<ObservationItemProps> = ({
         {hasGroupMembers ? (
           <div
             className={styles.groupMembers}
-            data-testid={`${testIdPrefix}observation-group-members-${observation.conceptNameToDisplay}-${index}`}
+            data-testid={`${testIdPrefix}observation-group-members-${observation.display}-${index}`}
           >
-            {observation.groupMembers?.map((member, memberIndex) => (
+            {observation.members?.map((member, memberIndex) => (
               <ObservationMember
-                key={`${member.concept.uuid}`}
+                key={`${member.id}`}
                 member={member}
                 depth={0}
                 memberIndex={memberIndex}
@@ -180,27 +227,27 @@ export const ObservationItem: React.FC<ObservationItemProps> = ({
             ))}
           </div>
         ) : (
-          <p
+          <div
             className={classNames(
               styles.rowValue,
               isAbnormal ? styles.abnormalValue : '',
             )}
-            data-testid={`${testIdPrefix}observation-value-${observation.conceptNameToDisplay}-${index}`}
+            data-testid={`${testIdPrefix}observation-value-${observation.display}-${index}`}
           >
-            {observation.valueAsString}
+            {valueToDisplay}
             {units && ` ${units}`}
-          </p>
+          </div>
         )}
       </div>
-      {observation.comment && (
+      {comment && (
         <div
           className={styles.commentSection}
-          data-testid={`${testIdPrefix}observation-comment-${observation.conceptNameToDisplay}-${index}`}
+          data-testid={`${testIdPrefix}observation-comment-${observation.display}-${index}`}
         >
           <span className={styles.commentText}>
-            {observation.comment}
-            {observation.providers?.[0]?.name &&
-              ` - by ${observation.providers[0].name}`}
+            {comment}
+            {observation.encounter?.provider &&
+              ` - by ${observation.encounter.provider}`}
           </span>
         </div>
       )}

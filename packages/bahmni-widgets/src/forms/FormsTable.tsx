@@ -17,23 +17,20 @@ import {
   getFormattedError,
   fetchObservationForms,
   ObservationForm,
-  FormsEncounter,
-  getFormsDataByEncounterUuid,
+  getObservationsBundleByEncounterUuid,
   shouldEnableEncounterFilter,
   useSubscribeConsultationSaved,
   ConsultationSavedEventPayload,
 } from '@bahmni/services';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Bundle, Observation } from 'fhir/r4';
 import React, { useCallback, useMemo, useState } from 'react';
 import { usePatientUUID } from '../hooks/usePatientUUID';
 import { WidgetProps } from '../registry/model';
-import {
-  ObservationData,
-  FormRecordViewModel,
-  GroupedFormRecords,
-} from './models';
+import { FormRecordViewModel, GroupedFormRecords } from './models';
 import ObservationItem from './ObservationItem';
 import styles from './styles/FormsTable.module.scss';
+import { filterObservationsByFormName } from './utils';
 
 /**
  * Component to display patient forms grouped by form name in accordion format
@@ -102,24 +99,21 @@ const FormsTable: React.FC<WidgetProps> = ({
   }, [selectedRecord, getFormUuidByName]);
 
   // Fetch form metadata when a record is selected
-  const {
-    data: formMetadata,
-    isLoading: isLoadingMetadata,
-    error: metadataError,
-  } = useQuery<FormMetadata>({
-    queryKey: ['formMetadata', selectedFormUuid],
-    queryFn: () => fetchFormMetadata(selectedFormUuid!),
-    enabled: !!selectedFormUuid && isModalOpen,
-  });
+  const { isLoading: isLoadingMetadata, error: metadataError } =
+    useQuery<FormMetadata>({
+      queryKey: ['formMetadata', selectedFormUuid],
+      queryFn: () => fetchFormMetadata(selectedFormUuid!),
+      enabled: !!selectedFormUuid && isModalOpen,
+    });
 
   const {
-    data: formsEncounterData,
+    data: fhirObservationBundle,
     isLoading: isLoadingEncounterData,
     error: formDataError,
-  } = useQuery<FormsEncounter>({
-    queryKey: ['formsEncounter', selectedRecord?.encounterUuid],
+  } = useQuery<Bundle<Observation>>({
+    queryKey: ['formsEncounterFHIR', selectedRecord?.encounterUuid],
     queryFn: () =>
-      getFormsDataByEncounterUuid(selectedRecord!.encounterUuid, true),
+      getObservationsBundleByEncounterUuid(selectedRecord!.encounterUuid),
     enabled: !!selectedRecord?.encounterUuid && isModalOpen,
   });
 
@@ -137,22 +131,17 @@ const FormsTable: React.FC<WidgetProps> = ({
     [patientUuid],
   );
 
-  // Filter observations to only include those belonging to the selected form
+  // Extract observations from FHIR bundle and filter by form name
   const filteredObservations = useMemo(() => {
-    if (!formsEncounterData?.observations || !selectedRecord?.formName) {
+    if (!fhirObservationBundle || !selectedRecord?.formName) {
       return [];
     }
 
-    // Filter observations by formFieldPath that includes the form name
-    const filtered = formsEncounterData.observations.filter(
-      (obs) =>
-        'formFieldPath' in obs &&
-        typeof obs.formFieldPath === 'string' &&
-        obs.formFieldPath.includes(selectedRecord.formName),
+    return filterObservationsByFormName(
+      fhirObservationBundle,
+      selectedRecord.formName,
     );
-
-    return filtered;
-  }, [formsEncounterData?.observations, selectedRecord?.formName]);
+  }, [fhirObservationBundle, selectedRecord?.formName]);
 
   const headers = useMemo(
     () => [
@@ -315,12 +304,13 @@ const FormsTable: React.FC<WidgetProps> = ({
               </div>
             ) : filteredObservations.length > 0 ? (
               <div className={styles.formDetailsContainer}>
-                {filteredObservations.map((obs, index) => (
+                {filteredObservations.map(({ obs, comment }, index) => (
                   <ObservationItem
-                    key={`${obs.concept.uuid}`}
-                    observation={obs as unknown as ObservationData}
+                    key={`${obs.id}`}
+                    observation={obs}
                     index={index}
                     formName={selectedRecord.formName}
+                    comment={comment}
                   />
                 ))}
               </div>

@@ -220,7 +220,7 @@ export { findActiveEncounterInSession } from './encounterSessionService';
 export {
   getActiveVisit,
   shouldEnableEncounterFilter,
-  getFormsDataByEncounterUuid,
+  getObservationsBundleByEncounterUuid,
   type FormsEncounter,
 } from './encounterService';
 
