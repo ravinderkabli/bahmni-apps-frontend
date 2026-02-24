@@ -20,8 +20,10 @@ import {
   FormsEncounter,
   getFormsDataByEncounterUuid,
   shouldEnableEncounterFilter,
+  useSubscribeConsultationSaved,
+  ConsultationSavedEventPayload,
 } from '@bahmni/services';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useMemo, useState } from 'react';
 import { usePatientUUID } from '../hooks/usePatientUUID';
 import { WidgetProps } from '../registry/model';
@@ -54,11 +56,14 @@ const FormsTable: React.FC<WidgetProps> = ({
     encounterUuids,
   );
 
+  const queryClient = useQueryClient();
+
   const {
     data: formsData = [],
     isLoading: loading,
     isError,
     error,
+    refetch: refetchForms,
   } = useQuery<FormResponseData[], Error>({
     queryKey: ['forms', patientUuid, episodeOfCareUuids],
     queryFn: () => getPatientFormData(patientUuid!, undefined, numberOfVisits),
@@ -117,6 +122,20 @@ const FormsTable: React.FC<WidgetProps> = ({
       getFormsDataByEncounterUuid(selectedRecord!.encounterUuid, true),
     enabled: !!selectedRecord?.encounterUuid && isModalOpen,
   });
+
+  // Listen to consultation saved events and refetch cached data if observations were updated
+  useSubscribeConsultationSaved(
+    (payload: ConsultationSavedEventPayload) => {
+      if (
+        payload.patientUUID === patientUuid &&
+        payload.updatedConcepts.size > 0
+      ) {
+        refetchForms();
+        queryClient.invalidateQueries({ queryKey: ['formsEncounter'] });
+      }
+    },
+    [patientUuid],
+  );
 
   // Filter observations to only include those belonging to the selected form
   const filteredObservations = useMemo(() => {

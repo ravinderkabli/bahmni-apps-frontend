@@ -14,6 +14,7 @@ import {
   dispatchConsultationSaved,
 } from '@bahmni/services';
 import { useNotification, useActivePractitioner } from '@bahmni/widgets';
+import { Bundle } from 'fhir/r4';
 import React, { useEffect } from 'react';
 import { useEncounterSession } from '../../../src/hooks/useEncounterSession';
 import useAllergyStore from '../../../src/stores/allergyStore';
@@ -33,7 +34,6 @@ import {
 import { useClinicalAppData } from '../../hooks/useClinicalAppData';
 import useObservationFormsSearch from '../../hooks/useObservationFormsSearch';
 import { usePinnedObservationForms } from '../../hooks/usePinnedObservationForms';
-import { ConsultationBundle } from '../../models/consultationBundle';
 import {
   postConsultationBundle,
   createDiagnosisBundleEntries,
@@ -45,6 +45,7 @@ import {
   createEncounterBundleEntry,
   getEncounterReference,
 } from '../../services/consultationBundleService';
+import { extractConceptsFromResponseBundle } from '../../utils/fhir/conceptExtractor';
 import { createConsultationBundle } from '../../utils/fhir/consultationBundleCreator';
 import { createEncounterResource } from '../../utils/fhir/encounterResourceCreator';
 import AllergiesForm from '../forms/allergies/AllergiesForm';
@@ -304,7 +305,11 @@ const ConsultationPad: React.FC<ConsultationPadProps> = ({ onClose }) => {
       ...observationEntries,
     ]);
 
-    return postConsultationBundle<ConsultationBundle>(consultationBundle);
+    return postConsultationBundle<Bundle>(consultationBundle).then(
+      (responseBundle) => ({
+        updatedConcepts: extractConceptsFromResponseBundle(responseBundle),
+      }),
+    );
   };
 
   const handleOnPrimaryButtonClick = async () => {
@@ -336,7 +341,7 @@ const ConsultationPad: React.FC<ConsultationPadProps> = ({ onClose }) => {
 
       try {
         setIsSubmitting(true);
-        await submitConsultation();
+        const { updatedConcepts } = await submitConsultation();
 
         setIsSubmitting(false);
 
@@ -372,6 +377,7 @@ const ConsultationPad: React.FC<ConsultationPadProps> = ({ onClose }) => {
               selectedMedications.length > 0 || selectedVaccinations.length > 0,
             serviceRequests: selectedServiceRequest,
           },
+          updatedConcepts,
         });
 
         addNotification({
