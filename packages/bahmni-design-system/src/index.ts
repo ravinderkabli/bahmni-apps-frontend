@@ -41,6 +41,7 @@ export { TextArea, type TextAreaProps } from './atoms/textArea';
 export { RowCell, type RowCellProps } from './atoms/rowCell';
 export { NotificationContainer } from './molecules/notification';
 export { SortableDataTable } from './molecules/sortableDataTable';
+export { ExpandableDataTable } from './molecules/expandableDataTable';
 export {
   SimpleDataTable,
   type SimpleDataTableProps,
