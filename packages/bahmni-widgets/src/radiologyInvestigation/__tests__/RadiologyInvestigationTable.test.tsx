@@ -561,6 +561,143 @@ describe('RadiologyInvestigationTable', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('should fetch diagnostic reports only for opened accordion', async () => {
+    const mockBundleWithTwoDateGroups = {
+      resourceType: 'Bundle' as const,
+      type: 'searchset' as const,
+      entry: [
+        {
+          resource: createMockServiceRequest({
+            id: 'investigation-1',
+            code: { text: 'Chest X-Ray' },
+            priority: 'stat',
+            status: 'completed',
+            requester: { display: 'Dr. Smith' },
+            occurrencePeriod: { start: '2023-12-01T10:30:00.000Z' },
+          }),
+        },
+        {
+          resource: createMockServiceRequest({
+            id: 'investigation-2',
+            code: { text: 'CT Scan' },
+            priority: 'routine',
+            status: 'completed',
+            requester: { display: 'Dr. Johnson' },
+            occurrencePeriod: { start: '2023-12-02T14:15:00.000Z' },
+          }),
+        },
+      ],
+    };
+
+    mockGetPatientRadiologyInvestigationBundleWithImagingStudy.mockResolvedValue(
+      mockBundleWithTwoDateGroups,
+    );
+
+    mockGetDiagnosticReports.mockResolvedValue({
+      resourceType: 'Bundle',
+      type: 'searchset',
+      entry: [],
+    });
+
+    render(renderRadiologyInvestigationTable());
+
+    await waitFor(() => {
+      expect(screen.getByText('Chest X-Ray')).toBeInTheDocument();
+    });
+
+    expect(mockGetDiagnosticReports).toHaveBeenCalledTimes(1);
+    expect(mockGetDiagnosticReports).toHaveBeenCalledWith('test-patient-uuid', [
+      'investigation-1',
+    ]);
+  });
+
+  it('should not refetch diagnostic reports for previously opened accordion', async () => {
+    const mockBundleWithTwoDateGroups = {
+      resourceType: 'Bundle' as const,
+      type: 'searchset' as const,
+      entry: [
+        {
+          resource: createMockServiceRequest({
+            id: 'investigation-1',
+            code: { text: 'Chest X-Ray' },
+            priority: 'stat',
+            status: 'completed',
+            requester: { display: 'Dr. Smith' },
+            occurrencePeriod: { start: '2023-12-01T10:30:00.000Z' },
+          }),
+        },
+        {
+          resource: createMockServiceRequest({
+            id: 'investigation-2',
+            code: { text: 'CT Scan' },
+            priority: 'routine',
+            status: 'completed',
+            requester: { display: 'Dr. Johnson' },
+            occurrencePeriod: { start: '2023-12-02T14:15:00.000Z' },
+          }),
+        },
+      ],
+    };
+
+    mockGetPatientRadiologyInvestigationBundleWithImagingStudy.mockResolvedValue(
+      mockBundleWithTwoDateGroups,
+    );
+
+    mockGetDiagnosticReports.mockResolvedValue({
+      resourceType: 'Bundle',
+      type: 'searchset',
+      entry: [
+        {
+          resource: {
+            resourceType: 'DiagnosticReport',
+            id: 'report-1',
+            status: 'final',
+            code: { text: 'Chest X-Ray' },
+            basedOn: [{ reference: 'ServiceRequest/investigation-1' }],
+            performer: [{ display: 'Dr. Radiologist' }],
+            issued: '2023-12-01T14:30:00.000Z',
+          } as any,
+        },
+        {
+          resource: {
+            resourceType: 'DiagnosticReport',
+            id: 'report-2',
+            status: 'final',
+            code: { text: 'CT Scan' },
+            basedOn: [{ reference: 'ServiceRequest/investigation-2' }],
+            performer: [{ display: 'Dr. Radiologist' }],
+            issued: '2023-12-02T16:00:00.000Z',
+          } as any,
+        },
+      ],
+    });
+
+    render(renderRadiologyInvestigationTable());
+
+    await waitFor(() => {
+      expect(screen.getByText('Chest X-Ray')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('investigation-1-view-report-link-test-id'),
+      ).toBeInTheDocument();
+    });
+
+    const accordionHeaders = screen.getAllByTestId('accordian-table-title');
+    await userEvent.click(accordionHeaders[1]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('investigation-2-view-report-link-test-id'),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId('investigation-1-view-report-link-test-id'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('investigation-2-view-report-link-test-id'),
+    ).toBeInTheDocument();
+  });
+
   describe('Accessibility', () => {
     it('passes accessibility tests with data', async () => {
       mockGetPatientRadiologyInvestigationBundleWithImagingStudy.mockResolvedValue(

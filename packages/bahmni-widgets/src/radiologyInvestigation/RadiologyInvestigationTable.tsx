@@ -1,32 +1,32 @@
 import {
-  SortableDataTable,
-  TooltipIcon,
-  Tag,
   Accordion,
   AccordionItem,
   Link,
   Modal,
+  SortableDataTable,
+  Tag,
+  TooltipIcon,
 } from '@bahmni/design-system';
 import {
-  getPatientRadiologyInvestigationBundleWithImagingStudy,
-  useTranslation,
-  groupByDate,
-  formatDate,
-  FULL_MONTH_DATE_FORMAT,
-  ISO_DATE_FORMAT,
-  shouldEnableEncounterFilter,
-  getCategoryUuidFromOrderTypes,
-  getFormattedError,
-  dispatchAuditEvent,
   AUDIT_LOG_EVENT_DETAILS,
   AuditEventType,
-  useSubscribeConsultationSaved,
-  getDiagnosticReports,
   DATE_TIME_FORMAT,
+  dispatchAuditEvent,
+  formatDate,
+  FULL_MONTH_DATE_FORMAT,
+  getCategoryUuidFromOrderTypes,
+  getDiagnosticReports,
+  getFormattedError,
+  getPatientRadiologyInvestigationBundleWithImagingStudy,
+  groupByDate,
+  ISO_DATE_FORMAT,
+  shouldEnableEncounterFilter,
+  useSubscribeConsultationSaved,
+  useTranslation,
 } from '@bahmni/services';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import type { DiagnosticReport } from 'fhir/r4';
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ServiceRequestStatus,
   STATUS_TRANSLATION_MAP,
@@ -42,10 +42,10 @@ import {
 import { RadiologyInvestigationViewModel } from './models';
 import styles from './styles/RadiologyInvestigationTable.module.scss';
 import {
-  sortRadiologyInvestigationsByPriority,
-  filterRadiologyInvestionsReplacementEntries,
   createRadiologyInvestigationViewModels,
+  filterRadiologyInvestionsReplacementEntries,
   getAvailableImagingStudies,
+  sortRadiologyInvestigationsByPriority,
 } from './utils';
 
 export const radiologyInvestigationQueryKeys = (patientUUID: string) =>
@@ -84,8 +84,6 @@ const RadiologyInvestigationTable: React.FC<WidgetProps> = ({
   const [openAccordionIndices, setOpenAccordionIndices] = useState<Set<number>>(
     new Set([0]),
   );
-  const [currentOpenedAccordionIndex, setCurrentOpenedAccordionIndex] =
-    useState<number>(0);
   const [selectedInvestigation, setSelectedInvestigation] =
     useState<RadiologyInvestigationViewModel | null>(null);
 
@@ -191,27 +189,35 @@ const RadiologyInvestigationTable: React.FC<WidgetProps> = ({
     }));
   }, [data, t]);
 
-  // Fetch diagnostic reports only for the most recently opened accordion
-  const currentAccordionGroup =
-    processedInvestigations[currentOpenedAccordionIndex];
-  const orderIds =
-    currentAccordionGroup?.investigations.map(
-      (investigation) => investigation.id,
-    ) ?? [];
+  // Fetch reports independent of the other accordion
+  const diagnosticReportQueries = useQueries({
+    queries: Array.from(openAccordionIndices).map((index) => {
+      const accordionGroup = processedInvestigations[index];
+      const orderIds =
+        accordionGroup?.investigations.map(
+          (investigation) => investigation.id,
+        ) ?? [];
 
-  const { data: diagnosticReportsBundle } = useQuery({
-    queryKey: [
-      'diagnosticReports',
-      patientUUID,
-      currentOpenedAccordionIndex,
-      orderIds,
-    ],
-    queryFn: () => getDiagnosticReports(patientUUID!, orderIds),
-    enabled:
-      !!patientUUID &&
-      openAccordionIndices.has(currentOpenedAccordionIndex) &&
-      orderIds.length > 0,
+      return {
+        queryKey: ['diagnosticReports', patientUUID, index, orderIds],
+        queryFn: () => getDiagnosticReports(patientUUID!, orderIds),
+        enabled: !!patientUUID && orderIds.length > 0,
+      };
+    }),
   });
+
+  const diagnosticReportsBundle = useMemo(() => {
+    const allBundles = diagnosticReportQueries
+      .map((query) => query.data)
+      .filter((data) => data !== undefined);
+
+    if (allBundles.length === 0) return undefined;
+
+    return {
+      ...allBundles[0],
+      entry: allBundles.flatMap((bundle) => bundle.entry ?? []),
+    };
+  }, [diagnosticReportQueries]);
 
   const diagnosticReports = useMemo<DiagnosticReport[]>(() => {
     if (!diagnosticReportsBundle) return [];
@@ -225,7 +231,7 @@ const RadiologyInvestigationTable: React.FC<WidgetProps> = ({
       investigations: updateInvestigationsWithReportInfo(
         group.investigations,
         diagnosticReports,
-      ),
+      ) as RadiologyInvestigationViewModel[],
     }));
   }, [processedInvestigations, diagnosticReports]);
 
@@ -420,7 +426,6 @@ const RadiologyInvestigationTable: React.FC<WidgetProps> = ({
                     newSet.delete(index);
                   } else {
                     newSet.add(index);
-                    setCurrentOpenedAccordionIndex(index);
                   }
                   return newSet;
                 });
