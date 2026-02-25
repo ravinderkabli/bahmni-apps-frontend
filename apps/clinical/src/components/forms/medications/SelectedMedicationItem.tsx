@@ -194,8 +194,6 @@ const SelectedMedicationItem: React.FC<SelectedMedicationItemProps> =
           if (immediateFrequency) {
             updateFrequency(id, immediateFrequency);
           }
-          updateDuration(id, 0);
-          updateDurationUnit(id, null);
         }
         if (isSTAT) {
           updateStartDate(id, getTodayDate());
