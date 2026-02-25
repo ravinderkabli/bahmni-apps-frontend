@@ -53,13 +53,10 @@ export interface ConsultationSavedEventPayload {
 export const dispatchConsultationSaved = (
   payload: ConsultationSavedEventPayload,
 ): void => {
-  // Defer to next event loop tick to make it non-blocking
-  setTimeout(() => {
-    const event = new CustomEvent(CONSULTATION_SAVED_EVENT, {
-      detail: payload,
-    });
-    window.dispatchEvent(event);
-  }, 0);
+  const event = new CustomEvent(CONSULTATION_SAVED_EVENT, {
+    detail: payload,
+  });
+  window.dispatchEvent(event);
 };
 
 /**

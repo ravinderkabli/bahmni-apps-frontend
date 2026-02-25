@@ -29,7 +29,11 @@ import {
   STATUS_TRANSLATION_MAP,
 } from './models';
 import styles from './styles/GenericServiceRequestTable.module.scss';
-import { mapServiceRequest, sortServiceRequestsByPriority } from './utils';
+import {
+  filterServiceRequestReplacementEntries,
+  mapServiceRequest,
+  sortServiceRequestsByPriority,
+} from './utils';
 
 export const genericServiceRequestQueryKeys = (
   categoryUuid: string,
@@ -162,12 +166,11 @@ const GenericServiceRequestTable: React.FC<WidgetProps> = ({
   );
 
   const processedServiceRequests = useMemo(() => {
-    //TODO : Need to check this filteration;
-    // const filteredRequests =
-    //   filterServiceRequestReplacementEntries(serviceRequests);
+    const filteredRequests =
+      filterServiceRequestReplacementEntries(serviceRequests);
 
     const grouped = groupByDate(
-      serviceRequests,
+      filteredRequests,
       (request: ServiceRequestViewModel) => {
         const result = formatDate(request.orderedDate, t, ISO_DATE_FORMAT);
         return result.formattedResult;

@@ -40,6 +40,16 @@ jest.mock('../../../../hooks/useEncounterSession', () => ({
   }),
 }));
 
+jest.mock('../../../../hooks/useClinicalAppData', () => ({
+  useClinicalAppData: jest.fn().mockReturnValue({
+    episodeOfCare: [],
+    visit: [],
+    encounter: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
 jest.mock('../../../../stores/serviceRequestStore');
 
 const createWrapper = () => {

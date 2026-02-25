@@ -1199,6 +1199,29 @@ describe('ConsultationPad', () => {
         });
       });
 
+      it('should dispatch consultation saved event after successful submission to notify subscribers', async () => {
+        (
+          consultationBundleService.postConsultationBundle as jest.Mock
+        ).mockResolvedValue({
+          id: 'bundle-123',
+          type: 'transaction-response',
+        });
+
+        renderWithProvider();
+
+        const doneButton = screen.getByTestId('primary-button');
+        await userEvent.click(doneButton);
+
+        await waitFor(() => {
+          expect(mockDispatchConsultationSaved).toHaveBeenCalledWith(
+            expect.objectContaining({
+              patientUUID: expect.any(String),
+              updatedResources: expect.any(Object),
+            }),
+          );
+        });
+      });
+
       it('should disable button during submission', async () => {
         let resolveSubmission: any;
         (

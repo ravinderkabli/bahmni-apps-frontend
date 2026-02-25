@@ -18,7 +18,11 @@ import { usePatientUUID } from '../../hooks/usePatientUUID';
 import { useNotification } from '../../notification';
 import GenericServiceRequestTable from '../GenericServiceRequestTable';
 import { ServiceRequestViewModel } from '../models';
-import { mapServiceRequest, sortServiceRequestsByPriority } from '../utils';
+import {
+  filterServiceRequestReplacementEntries,
+  mapServiceRequest,
+  sortServiceRequestsByPriority,
+} from '../utils';
 
 expect.extend(toHaveNoViolations);
 
@@ -34,6 +38,7 @@ jest.mock('@bahmni/services', () => ({
 }));
 
 jest.mock('../utils', () => ({
+  filterServiceRequestReplacementEntries: jest.fn(),
   mapServiceRequest: jest.fn(),
   sortServiceRequestsByPriority: jest.fn(),
 }));
@@ -61,6 +66,10 @@ const mockGetCategoryUuidFromOrderTypes =
 const mockGetServiceRequests = getServiceRequests as jest.MockedFunction<
   typeof getServiceRequests
 >;
+const mockFilterServiceRequestReplacementEntries =
+  filterServiceRequestReplacementEntries as jest.MockedFunction<
+    typeof filterServiceRequestReplacementEntries
+  >;
 const mockMapServiceRequest = mapServiceRequest as jest.MockedFunction<
   typeof mapServiceRequest
 >;
@@ -233,6 +242,9 @@ describe('GenericServiceRequestTable', () => {
       message: 'Network error',
       title: '',
     });
+    mockFilterServiceRequestReplacementEntries.mockImplementation(
+      (data) => data,
+    );
     mockSortServiceRequestsByPriority.mockImplementation((data) => data);
     mockGroupByDate.mockReturnValue([]);
     mockGetCategoryUuidFromOrderTypes.mockResolvedValue('lab-uuid');
@@ -409,6 +421,30 @@ describe('GenericServiceRequestTable', () => {
         }
         // For display formatting - return display format
         return { formattedResult: '01/12/2023' };
+      });
+    });
+
+    it('filters replacement entries before grouping', async () => {
+      const filteredRequests = [mockServiceRequests[0], mockServiceRequests[2]];
+      mockFilterServiceRequestReplacementEntries.mockReturnValue(
+        filteredRequests,
+      );
+
+      render(
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await waitFor(() => {
+        expect(mockFilterServiceRequestReplacementEntries).toHaveBeenCalledWith(
+          mockServiceRequests,
+        );
+        expect(mockGroupByDate).toHaveBeenCalledWith(
+          filteredRequests,
+          expect.any(Function),
+        );
       });
     });
 

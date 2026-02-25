@@ -52,8 +52,14 @@ describe('labInvestigationService', () => {
   describe('getLabInvestigationsBundle', () => {
     it('should fetch and return lab test bundle', async () => {
       const mockBundle = createMockBundle([
-        createMockServiceRequest({ id: 'test-1' }),
-        createMockServiceRequest({ id: 'test-2' }),
+        createMockServiceRequest({
+          id: 'test-1',
+          code: { coding: [{ code: 'concept-1' }], text: 'Test Name 1' },
+        }),
+        createMockServiceRequest({
+          id: 'test-2',
+          code: { coding: [{ code: 'concept-2' }], text: 'Test Name 2' },
+        }),
       ]);
 
       (get as jest.Mock).mockResolvedValue(mockBundle);
