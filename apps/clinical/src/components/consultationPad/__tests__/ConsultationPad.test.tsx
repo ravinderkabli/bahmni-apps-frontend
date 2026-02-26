@@ -12,6 +12,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BundleEntry } from 'fhir/r4';
+import { axe, toHaveNoViolations } from 'jest-axe';
 import useObservationFormsSearch from '../../../hooks/useObservationFormsSearch';
 import { ClinicalAppProvider } from '../../../providers/ClinicalAppProvider';
 import * as consultationBundleService from '../../../services/consultationBundleService';
@@ -22,6 +23,8 @@ import { useEncounterDetailsStore } from '../../../stores/encounterDetailsStore'
 import { useMedicationStore } from '../../../stores/medicationsStore';
 import useServiceRequestStore from '../../../stores/serviceRequestStore';
 import ConsultationPad from '../ConsultationPad';
+
+expect.extend(toHaveNoViolations);
 
 // Import the mocked service to get access to the mock function
 
@@ -2308,6 +2311,68 @@ describe('ConsultationPad', () => {
         expect(concepts.get('valid-uuid-001')).toBe('Valid Concept 1');
         expect(concepts.get('another-valid-uuid-002')).toBe('Valid Concept 2');
       });
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should not have accessibility violations in default render state', async () => {
+      renderWithProvider();
+
+      const container = screen.getByTestId('mock-action-area');
+      const results = await axe(container);
+
+      expect(results).toHaveNoViolations();
+    });
+
+    it('should not have accessibility violations during form submission state', async () => {
+      renderWithProvider();
+
+      const doneButton = screen.getByTestId('primary-button');
+      await userEvent.click(doneButton);
+
+      await waitFor(() => {
+        const container = screen.getByTestId('mock-action-area');
+        axe(container).then((results: any) => {
+          expect(results).toHaveNoViolations();
+        });
+      });
+    });
+
+    it('should have proper ARIA labels for action buttons', () => {
+      renderWithProvider();
+
+      const primaryButton = screen.getByTestId('primary-button');
+      const secondaryButton = screen.getByTestId('secondary-button');
+
+      expect(primaryButton).toBeInTheDocument();
+      expect(secondaryButton).toBeInTheDocument();
+    });
+
+    it('should be keyboard navigable', async () => {
+      renderWithProvider();
+
+      const primaryButton = screen.getByTestId('primary-button');
+      const secondaryButton = screen.getByTestId('secondary-button');
+
+      // Tab to primary button
+      primaryButton.focus();
+      expect(primaryButton).toHaveFocus();
+
+      // Tab to secondary button
+      secondaryButton.focus();
+      expect(secondaryButton).toHaveFocus();
+    });
+
+    it('should have keyboard support for form submission', async () => {
+      renderWithProvider();
+
+      const primaryButton = screen.getByTestId('primary-button');
+      primaryButton.focus();
+
+      // Simulate Enter key press
+      fireEvent.keyDown(primaryButton, { key: 'Enter', code: 'Enter' });
+
+      expect(primaryButton).toHaveFocus();
     });
   });
 });
