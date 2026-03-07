@@ -1,5 +1,6 @@
 import { HeaderSideNavItem } from '@bahmni/design-system';
-import { Dashboard, DashboardConfig } from '@bahmni/services';
+import { Dashboard } from '../providers/clinicalConfig/models';
+import { DashboardConfig } from './models';
 
 /**
  * Gets the default dashboard from an array of dashboards
@@ -9,22 +10,18 @@ import { Dashboard, DashboardConfig } from '@bahmni/services';
 export const getDefaultDashboard = (
   dashboards: Dashboard[],
 ): Dashboard | null => {
-  // Return null if the array is empty
   if (dashboards.length === 0) {
     return null;
   }
 
-  // Find dashboard with default: true
   const defaultDashboard = dashboards.find(
     (dashboard) => dashboard.default === true,
   );
 
-  // Return the default dashboard if found
   if (defaultDashboard) {
     return defaultDashboard;
   }
 
-  // Return the first dashboard if no default is specified
   return dashboards[0];
 };
 
@@ -37,9 +34,8 @@ export const getSidebarItems = (
   dashboardConfig: DashboardConfig,
   t: (key: string) => string,
 ): HeaderSideNavItem[] => {
-  //const { t } = useTranslation();
   return dashboardConfig.sections.map((section) => ({
-    id: section.id,
+    id: section.id!,
     icon: section.icon,
     label: t(section.translationKey ?? section.name),
   }));

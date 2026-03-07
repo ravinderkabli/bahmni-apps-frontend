@@ -40,7 +40,7 @@ const mockUseRegistrationConfig = jest.fn(() => ({
   refetch: jest.fn(),
 }));
 
-jest.mock('../../../../hooks/useRegistrationConfig', () => ({
+jest.mock('../../../../providers/registrationConfig', () => ({
   useRegistrationConfig: jest.fn(() => mockUseRegistrationConfig()),
 }));
 

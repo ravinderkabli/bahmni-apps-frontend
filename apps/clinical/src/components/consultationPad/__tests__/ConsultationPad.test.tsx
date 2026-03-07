@@ -26,6 +26,34 @@ import ConsultationPad from '../ConsultationPad';
 
 expect.extend(toHaveNoViolations);
 
+const mockValidDashboardConfig = {
+  sections: [
+    {
+      id: 'vitals',
+      name: 'Vitals',
+      icon: 'heartbeat',
+      translationKey: 'VITALS_SECTION',
+      controls: [
+        {
+          type: 'flowSheet',
+          config: {},
+        },
+      ],
+    },
+    {
+      id: 'medications',
+      name: 'Medications',
+      icon: 'pills',
+      controls: [
+        {
+          type: 'treatment',
+          config: {},
+        },
+      ],
+    },
+  ],
+};
+
 // Import the mocked service to get access to the mock function
 
 jest.mock('@bahmni/services', () => ({
@@ -169,14 +197,24 @@ const mockRemoveQueries = jest.fn();
 const mockInvalidateQueries = jest.fn();
 
 jest.mock('@tanstack/react-query', () => ({
-  useQuery: jest.fn(() => ({
-    data: {
-      encounterUuids: [],
-      visitUuids: [],
-    },
-    isLoading: false,
-    error: null,
-  })),
+  useQuery: jest.fn((options) => {
+    const queryKey = options?.queryKey ?? [];
+    if (queryKey[0] === 'dashboardConfig') {
+      return {
+        data: mockValidDashboardConfig,
+        isLoading: false,
+        error: null,
+      };
+    }
+    return {
+      data: {
+        encounterUuids: [],
+        visitUuids: [],
+      },
+      isLoading: false,
+      error: null,
+    };
+  }),
   useQueryClient: jest.fn(() => ({
     cancelQueries: mockCancelQueries,
     removeQueries: mockRemoveQueries,
@@ -347,7 +385,7 @@ jest.mock('../../../hooks/usePinnedObservationForms', () => ({
   usePinnedObservationForms: () => mockUsePinnedObservationForms(),
 }));
 
-jest.mock('../../../hooks/useClinicalConfig', () => ({
+jest.mock('../../../providers/clinicalConfig', () => ({
   __esModule: true,
   useClinicalConfig: () => ({
     clinicalConfig: null,

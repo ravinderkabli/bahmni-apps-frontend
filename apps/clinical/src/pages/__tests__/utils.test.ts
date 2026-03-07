@@ -1,12 +1,10 @@
-import { Dashboard, DashboardConfig } from '@bahmni/services';
 import {
   validFullClinicalConfig,
   validDashboardConfig,
 } from '../../__mocks__/configMocks';
-import {
-  getDefaultDashboard,
-  getSidebarItems,
-} from '../consultationPageService';
+import { Dashboard } from '../../providers/clinicalConfig/models';
+import { DashboardConfig } from '../models';
+import { getDefaultDashboard, getSidebarItems } from '../util';
 
 const mockTranslation = jest.fn((key: string) => key);
 

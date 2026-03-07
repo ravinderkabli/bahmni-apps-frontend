@@ -1,9 +1,6 @@
 import { post, get } from '../api';
-import { BAHMNI_SQL_URL } from '../constants/app';
 import {
   APPOINTMENTS_SEARCH_URL,
-  UPCOMING_APPOINTMENTS_SQL_QUERY,
-  PAST_APPOINTMENTS_SQL_QUERY,
   getAppointmentByIdUrl,
   getUpcomingAppointmentsUrl,
   getPastAppointmentsUrl,

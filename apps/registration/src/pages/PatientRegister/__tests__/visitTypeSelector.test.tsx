@@ -1,22 +1,23 @@
+import { NotificationProvider } from '@bahmni/widgets';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { RegistrationConfigProvider } from '../../../providers/RegistrationConfigProvider';
+import { RegistrationConfigProvider } from '../../../providers/registrationConfig';
 import { VisitTypeSelector } from '../visitTypeSelector';
 
 Element.prototype.scrollIntoView = jest.fn();
 
 const mockGetVisitTypes = jest.fn();
 const mockCheckIfActiveVisitExists = jest.fn();
-const mockGetRegistrationConfig = jest.fn();
+const mockGetConfig = jest.fn();
 
 jest.mock('@bahmni/services', () => ({
   ...jest.requireActual('@bahmni/services'),
   getVisitTypes: () => mockGetVisitTypes(),
   checkIfActiveVisitExists: (patientUuid: string) =>
     mockCheckIfActiveVisitExists(patientUuid),
-  getRegistrationConfig: () => mockGetRegistrationConfig(),
+  getConfig: () => mockGetConfig(),
   useTranslation: () => ({
     t: (key: string, params?: Record<string, any>) => {
       if (key === 'START_VISIT_TYPE' && params?.visitType) {
@@ -56,7 +57,7 @@ describe('VisitTypeSelector', () => {
 
     mockGetVisitTypes.mockResolvedValue(mockVisitTypes);
     mockCheckIfActiveVisitExists.mockResolvedValue(false);
-    mockGetRegistrationConfig.mockResolvedValue({
+    mockGetConfig.mockResolvedValue({
       patientSearch: { customAttributes: [], appointment: [] },
       defaultVisitType: 'OPD',
     });
@@ -69,20 +70,22 @@ describe('VisitTypeSelector', () => {
 
     return render(
       <MemoryRouter initialEntries={initialEntries}>
-        <QueryClientProvider client={queryClient}>
-          <RegistrationConfigProvider>
-            <Routes>
-              <Route
-                path="/patient/:patientUuid?"
-                element={
-                  <VisitTypeSelector
-                    onVisitTypeSelect={mockOnVisitTypeSelect}
-                  />
-                }
-              />
-            </Routes>
-          </RegistrationConfigProvider>
-        </QueryClientProvider>
+        <NotificationProvider>
+          <QueryClientProvider client={queryClient}>
+            <RegistrationConfigProvider>
+              <Routes>
+                <Route
+                  path="/patient/:patientUuid?"
+                  element={
+                    <VisitTypeSelector
+                      onVisitTypeSelect={mockOnVisitTypeSelect}
+                    />
+                  }
+                />
+              </Routes>
+            </RegistrationConfigProvider>
+          </QueryClientProvider>
+        </NotificationProvider>
       </MemoryRouter>,
     );
   };
@@ -91,7 +94,7 @@ describe('VisitTypeSelector', () => {
     renderComponent();
 
     await waitFor(() => expect(mockGetVisitTypes).toHaveBeenCalled());
-    await waitFor(() => expect(mockGetRegistrationConfig).toHaveBeenCalled());
+    await waitFor(() => expect(mockGetConfig).toHaveBeenCalled());
 
     const button = await screen.findByRole('button', {
       name: /Start OPD visit/i,

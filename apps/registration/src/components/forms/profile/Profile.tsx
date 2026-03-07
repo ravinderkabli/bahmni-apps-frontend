@@ -14,7 +14,6 @@ import {
 } from '@bahmni/services';
 import { useState, useImperativeHandle, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useRegistrationConfig } from '../../../hooks/useRegistrationConfig';
 import type { BasicInfoData } from '../../../models/patient';
 import type {
   BasicInfoErrors,
@@ -23,6 +22,7 @@ import type {
   DateErrors,
 } from '../../../models/validation';
 import styles from '../../../pages/PatientRegister/styles/index.module.scss';
+import { useRegistrationConfig } from '../../../providers/registrationConfig';
 import {
   useGenderData,
   useIdentifierData,

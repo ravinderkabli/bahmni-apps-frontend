@@ -13,7 +13,7 @@ jest.mock('../../../hooks/useEncounterSession', () => ({
   useEncounterSession: () => mockUseEncounterSession(),
 }));
 
-jest.mock('../../../hooks/useClinicalConfig', () => ({
+jest.mock('../../../providers/clinicalConfig', () => ({
   __esModule: true,
   useClinicalConfig: () => ({
     clinicalConfig: null,

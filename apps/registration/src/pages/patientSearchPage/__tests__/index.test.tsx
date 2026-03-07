@@ -3,7 +3,6 @@ import {
   AUDIT_LOG_EVENT_DETAILS,
   AuditEventType,
   dispatchAuditEvent,
-  getRegistrationConfig,
 } from '@bahmni/services';
 import { NotificationProvider, UserPrivilegeProvider } from '@bahmni/widgets';
 import {
@@ -16,7 +15,10 @@ import { axe, toHaveNoViolations } from 'jest-axe';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import PatientSearchPage from '..';
 import i18n from '../../../../setupTests.i18n';
-import { RegistrationConfigProvider } from '../../../providers/RegistrationConfigProvider';
+import {
+  useRegistrationConfig,
+  RegistrationConfigProvider,
+} from '../../../providers/registrationConfig';
 import * as appointmentSearchResultActionHandler from '../appointmentSearchResultActionHandler';
 
 expect.extend(toHaveNoViolations);
@@ -96,7 +98,6 @@ jest.mock('@bahmni/services', () => ({
     username: 'testuser',
     uuid: 'test-uuid',
   }),
-  getRegistrationConfig: jest.fn(),
   updateAppointmentStatus: jest.fn(),
   notificationService: {
     register: jest.fn(),
@@ -147,6 +148,11 @@ const mockUserPrivileges = [
 let mockSearchData: any = null;
 let mockOnSearchArgs: any[];
 
+jest.mock('../../../providers/registrationConfig', () => ({
+  ...jest.requireActual('../../../providers/registrationConfig'),
+  useRegistrationConfig: jest.fn(),
+}));
+
 jest.mock('@bahmni/widgets', () => ({
   ...jest.requireActual('@bahmni/widgets'),
   useUserPrivilege: jest.fn(() => ({
@@ -154,7 +160,6 @@ jest.mock('@bahmni/widgets', () => ({
   })),
   register: jest.fn(),
   useNotification: jest.fn(() => ({ addNotification: jest.fn() })),
-  NotificationProvider: ({ children }: any) => children,
   SearchPatient: jest.fn(({ onSearch }) => {
     const handleSearch = () => {
       if (onSearch) {
@@ -183,6 +188,50 @@ jest.mock('@bahmni/widgets', () => ({
 
 describe('PatientSearchPage', () => {
   let queryClient: QueryClient;
+  const mockRegistrationConfig = {
+    patientSearch: {
+      customAttributes: [
+        {
+          translationKey: 'REGISTRATION_PATIENT_SEARCH_PHONE_NUMBER',
+          fields: ['phoneNumber', 'alternatePhoneNumber'],
+          expectedFields: [
+            {
+              field: 'phoneNumber',
+              translationKey: 'Phone Number',
+            },
+            {
+              field: 'alternatePhoneNumber',
+              translationKey: 'Alternate Phone Number',
+            },
+          ],
+          type: 'person',
+        },
+      ],
+      appointment: [
+        {
+          translationKey: 'REGISTRATION_PATIENT_SEARCH_APPOINTMENT',
+          fields: ['appointmentNumber'],
+          expectedFields: [
+            {
+              field: 'appointmentNumber',
+              translationKey: 'Appointment Number',
+            },
+          ],
+          type: 'appointment',
+          actions: [
+            {
+              type: 'navigate',
+              translationKey: 'View Details',
+              onAction: {
+                navigation: '/patient/{{patientUuid}}/appointments',
+              },
+              enabledRule: [],
+            },
+          ],
+        },
+      ],
+    },
+  };
 
   beforeEach(() => {
     i18n.changeLanguage('en');
@@ -190,49 +239,8 @@ describe('PatientSearchPage', () => {
 
     mockSearchData = null;
 
-    (getRegistrationConfig as jest.Mock).mockResolvedValue({
-      patientSearch: {
-        customAttributes: [
-          {
-            translationKey: 'REGISTRATION_PATIENT_SEARCH_PHONE_NUMBER',
-            fields: ['phoneNumber', 'alternatePhoneNumber'],
-            expectedFields: [
-              {
-                field: 'phoneNumber',
-                translationKey: 'Phone Number',
-              },
-              {
-                field: 'alternatePhoneNumber',
-                translationKey: 'Alternate Phone Number',
-              },
-            ],
-            type: 'person',
-          },
-        ],
-        appointment: [
-          {
-            translationKey: 'REGISTRATION_PATIENT_SEARCH_APPOINTMENT',
-            fields: ['appointmentNumber'],
-            expectedFields: [
-              {
-                field: 'appointmentNumber',
-                translationKey: 'Appointment Number',
-              },
-            ],
-            type: 'appointment',
-            actions: [
-              {
-                type: 'navigate',
-                translationKey: 'View Details',
-                onAction: {
-                  navigation: '/patient/{{patientUuid}}/appointments',
-                },
-                enabledRule: [],
-              },
-            ],
-          },
-        ],
-      },
+    (useRegistrationConfig as jest.Mock).mockReturnValue({
+      registrationConfig: mockRegistrationConfig,
     });
 
     (useQuery as jest.Mock).mockReturnValue({
@@ -690,7 +698,7 @@ describe('PatientSearchPage', () => {
         'appointment',
       ];
 
-      (getRegistrationConfig as jest.Mock).mockResolvedValue({
+      const appointmentConfig = {
         patientSearch: {
           customAttributes: [],
           appointment: [
@@ -751,6 +759,10 @@ describe('PatientSearchPage', () => {
             },
           ],
         },
+      };
+
+      (useRegistrationConfig as jest.Mock).mockReturnValue({
+        registrationConfig: appointmentConfig,
       });
     });
 
@@ -784,10 +796,6 @@ describe('PatientSearchPage', () => {
       });
 
       renderComponent();
-
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
 
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
@@ -866,10 +874,6 @@ describe('PatientSearchPage', () => {
 
       renderComponent();
 
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
-
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
       );
@@ -893,10 +897,6 @@ describe('PatientSearchPage', () => {
       });
 
       renderComponent();
-
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
 
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
@@ -935,10 +935,6 @@ describe('PatientSearchPage', () => {
 
       renderComponent();
 
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
-
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
       );
@@ -964,10 +960,6 @@ describe('PatientSearchPage', () => {
       });
 
       renderComponent();
-
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
 
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
@@ -1000,10 +992,6 @@ describe('PatientSearchPage', () => {
 
       renderComponent();
 
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
-
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
       );
@@ -1031,10 +1019,6 @@ describe('PatientSearchPage', () => {
 
       renderComponent();
 
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
-
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
       );
@@ -1051,7 +1035,7 @@ describe('PatientSearchPage', () => {
       delete (window as any).location;
       window.location = { href: '' } as any;
 
-      (getRegistrationConfig as jest.Mock).mockResolvedValue({
+      const hashNavConfig = {
         patientSearch: {
           customAttributes: [],
           appointment: [
@@ -1083,7 +1067,12 @@ describe('PatientSearchPage', () => {
             },
           ],
         },
+      };
+
+      (useRegistrationConfig as jest.Mock).mockReturnValue({
+        registrationConfig: hashNavConfig,
       });
+
       (useQuery as jest.Mock).mockReturnValue({
         data: {
           totalCount: 1,
@@ -1094,10 +1083,6 @@ describe('PatientSearchPage', () => {
       });
 
       renderComponent();
-
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
 
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',
@@ -1139,10 +1124,6 @@ describe('PatientSearchPage', () => {
       });
 
       renderComponent();
-
-      await waitFor(() => {
-        expect(getRegistrationConfig).toHaveBeenCalled();
-      });
 
       const searchInput = screen.getByPlaceholderText(
         'Search by name or patient ID',

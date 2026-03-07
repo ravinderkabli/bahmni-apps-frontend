@@ -18,3 +18,6 @@ export const ENCOUNTER_SEARCH_URL = OPENMRS_FHIR_R4 + '/Encounter';
 export const OBSERVATION_FORMS_URL =
   OPENMRS_REST_V1 + '/bahmniie/form/latestPublishedForms';
 export const CLINICAL_NAMESPACE = 'clinical';
+
+export const CLINICAL_V2_CONFIG_BASE_URL =
+  '/bahmni_config/openmrs/apps/clinical/v2';

@@ -18,7 +18,6 @@ import {
   AuditEventType,
   BAHMNI_HOME_PATH,
   dispatchAuditEvent,
-  getRegistrationConfig,
   PatientSearchField,
   PatientSearchResult,
   PatientSearchResultBundle,
@@ -27,6 +26,7 @@ import {
 import { SearchPatient, useUserPrivilege } from '@bahmni/widgets';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useRegistrationConfig } from '../../providers/registrationConfig';
 import {
   getAppointmentStatusClassName,
   handleActionButtonClick,
@@ -62,30 +62,20 @@ const PatientSearchPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedFieldType, setSelectedFieldType] = useState<string>('');
   const { userPrivileges } = useUserPrivilege();
+  const { registrationConfig } = useRegistrationConfig();
 
   const handleCreateNewPatient = () => {
     navigate('/registration/patient/new');
   };
 
-  const getSearchFieldsFromConfig = async (selectedType: string) => {
-    const config = await getRegistrationConfig();
-
-    const fields =
-      selectedType === 'appointment'
-        ? (config?.patientSearch?.appointment ?? [])
-        : (config?.patientSearch?.customAttributes ?? []);
-
-    return fields;
-  };
-
   useEffect(() => {
-    const loadSearchConfig = async () => {
-      getSearchFieldsFromConfig(selectedFieldType).then((fields) => {
-        setSearchFields(fields);
-      });
-    };
-    loadSearchConfig();
-  }, [selectedFieldType]);
+    const fields =
+      selectedFieldType === 'appointment'
+        ? (registrationConfig?.patientSearch?.appointment ?? [])
+        : (registrationConfig?.patientSearch?.customAttributes ?? []);
+
+    setSearchFields(fields);
+  }, [selectedFieldType, registrationConfig]);
 
   useEffect(() => {
     dispatchAuditEvent({
@@ -333,6 +323,7 @@ const PatientSearchPage: React.FC = () => {
       main={
         <div className={styles.main}>
           <SearchPatient
+            patientSearch={registrationConfig?.patientSearch}
             buttonTitle={t('REGISTRATION_PATIENT_SEARCH_BUTTON_TITLE')}
             searchBarPlaceholder={t(
               'REGISTRATION_PATIENT_SEARCH_INPUT_PLACEHOLDER',

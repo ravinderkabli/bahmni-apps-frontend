@@ -43,6 +43,10 @@ export {
   type PersonAttributeTypesResponse,
   type ConceptAnswer,
   type PersonAttributeConcept,
+  type PatientSearchField,
+  type AppointmentSearchField,
+  type ExpectedFieldConfig,
+  type SearchActionConfig,
   AttributeFormat,
   AttributeInputType,
   getInputTypeForFormat,
@@ -184,26 +188,7 @@ export {
   ORDER_TYPE_QUERY_KEY,
 } from './investigationService';
 
-export {
-  getClinicalConfig,
-  getDashboardConfig,
-  getMedicationConfig,
-  getRegistrationConfig,
-  type ClinicalConfig,
-  type DashboardConfig,
-  type MedicationJSONConfig,
-  type DashboardSectionConfig,
-  type Dashboard,
-  type Frequency,
-  type RegistrationConfig,
-  type PatientSearchConfig,
-  type PatientSearchField,
-  type PatientInformationConfig,
-  type SearchActionConfig,
-  type ControlConfig,
-  type AppExtensionConfig,
-  type ExtensionPoint,
-} from './configService';
+export { getConfig } from './configService';
 
 export { getCurrentUser, getUserLoginLocation, type User } from './userService';
 export { USER_PINNED_PREFERENCE_URL } from './observationFormsService/constants';

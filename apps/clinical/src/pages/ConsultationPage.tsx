@@ -6,32 +6,37 @@ import {
   useSidebarNavigation,
   ActionAreaLayout,
 } from '@bahmni/design-system';
-import { useTranslation, BAHMNI_HOME_PATH } from '@bahmni/services';
+import {
+  useTranslation,
+  BAHMNI_HOME_PATH,
+  getConfig,
+  generateId,
+} from '@bahmni/services';
 import {
   ProgramDetails,
   useNotification,
   useUserPrivilege,
 } from '@bahmni/widgets';
-import React, { Suspense, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ConsultationPad from '../components/consultationPad/ConsultationPad';
 import DashboardContainer from '../components/dashboardContainer/DashboardContainer';
 import PatientHeader from '../components/patientHeader/PatientHeader';
 import { BAHMNI_CLINICAL_PATH } from '../constants/app';
-import { useClinicalConfig } from '../hooks/useClinicalConfig';
-import { useDashboardConfig } from '../hooks/useDashboardConfig';
 import { ClinicalAppProvider } from '../providers/ClinicalAppProvider';
-import {
-  getDefaultDashboard,
-  getSidebarItems,
-} from '../services/consultationPageService';
+import { useClinicalConfig } from '../providers/clinicalConfig';
 import { useObservationFormsStore } from '../stores/observationFormsStore';
 import {
+  DASHBOARD_CONFIG_URL,
   CURRENT_DASHBOARD_SEARCH_PARAMS_KEY,
   EPISODE_UUID_SEARCH_PARAMS_KEY,
   PROGRAM_UUID_SEARCH_PARAMS_KEY,
 } from './constant';
+import { DashboardConfig } from './models';
+import dashboardConfigSchema from './schema.json';
 import styles from './styles/ConsultationPage.module.scss';
+import { getDefaultDashboard, getSidebarItems } from './util';
 
 const breadcrumbItems = [
   { id: 'home', label: 'Home', href: BAHMNI_HOME_PATH },
@@ -77,7 +82,8 @@ const globalActions = [
  */
 const ConsultationPage: React.FC = () => {
   const { t } = useTranslation();
-  const { clinicalConfig } = useClinicalConfig();
+  const { clinicalConfig, isLoading: clinicalConfigLoading } =
+    useClinicalConfig();
   const { userPrivileges } = useUserPrivilege();
   const { addNotification } = useNotification();
   const [isActionAreaVisible, setIsActionAreaVisible] = useState(false);
@@ -109,8 +115,40 @@ const ConsultationPage: React.FC = () => {
     );
   }, [clinicalConfig, currentDashboardParam]);
 
-  const dashboardUrl = currentDashboard?.url ?? null;
-  const { dashboardConfig } = useDashboardConfig(dashboardUrl);
+  const dashboardURL = currentDashboard?.url ?? null;
+
+  const {
+    data: dashboardConfig,
+    isLoading: isDashboardConfigLoading,
+    error: dashboardConfigError,
+  } = useQuery({
+    queryKey: ['dashboardConfig', dashboardURL],
+    queryFn: () =>
+      getConfig<DashboardConfig>(
+        DASHBOARD_CONFIG_URL(dashboardURL),
+        dashboardConfigSchema,
+      ),
+    select: (config) => {
+      if (!config?.sections?.length) return config;
+      return {
+        ...config,
+        sections: config.sections.map((section) =>
+          section.id ? section : { ...section, id: generateId() },
+        ),
+      };
+    },
+    enabled: !!dashboardURL,
+  });
+
+  useEffect(() => {
+    if (dashboardConfigError) {
+      addNotification({
+        title: t('ERROR_LOADING_DASHBOARD_CONFIG'),
+        message: dashboardConfigError.message,
+        type: 'error',
+      });
+    }
+  }, [dashboardConfigError]);
 
   const sidebarItems = useMemo(() => {
     if (!dashboardConfig) return [];
@@ -119,8 +157,14 @@ const ConsultationPage: React.FC = () => {
 
   const { activeItemId, handleItemClick } = useSidebarNavigation(sidebarItems);
 
-  if (!clinicalConfig) {
-    return <Loading description={t('LOADING_CLINICAL_CONFIG')} role="status" />;
+  if (clinicalConfigLoading) {
+    return (
+      <Loading
+        id="loading-clinical-config"
+        description={t('LOADING_CLINICAL_CONFIG')}
+        role="status"
+      />
+    );
   }
   if (!userPrivileges) {
     return <Loading description={t('LOADING_USER_PRIVILEGES')} role="status" />;
@@ -137,12 +181,22 @@ const ConsultationPage: React.FC = () => {
       message: errorMessage,
       type: 'error',
     });
-    return <Loading description={t('ERROR_LOADING_DASHBOARD')} role="alert" />;
+    return (
+      <div
+        id="error-no-default-dashboard"
+        data-testid="error-no-default-dashboard-test-id"
+      />
+    );
   }
 
-  if (!dashboardConfig) {
+  if (isDashboardConfigLoading) {
     return (
-      <Loading description={t('LOADING_DASHBOARD_CONFIG')} role="status" />
+      <Loading
+        id="loading-dashboard-config"
+        data-testid="loading-dashboard-config-test-id"
+        description={t('LOADING_DASHBOARD_CONFIG')}
+        role="status"
+      />
     );
   }
 
@@ -175,8 +229,11 @@ const ConsultationPage: React.FC = () => {
         }
         mainDisplay={
           <Suspense
+            data-testid="suspense-dashboard-container-test-id"
             fallback={
               <Loading
+                id="loading-dashboard-content"
+                data-testid="loading-dashboard-content-test-id"
                 description={t('LOADING_DASHBOARD_CONTENT')}
                 role="status"
               />
@@ -195,7 +252,7 @@ const ConsultationPage: React.FC = () => {
               {renderContextInformation()}
             </div>
             <DashboardContainer
-              sections={dashboardConfig.sections}
+              sections={dashboardConfig!.sections}
               activeItemId={activeItemId}
             />
           </Suspense>

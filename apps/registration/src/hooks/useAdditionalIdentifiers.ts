@@ -1,7 +1,7 @@
 import { getIdentifierTypes, IdentifierTypesResponse } from '@bahmni/services';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { useRegistrationConfig } from './useRegistrationConfig';
+import { useRegistrationConfig } from '../providers/registrationConfig';
 
 export const IDENTIFIER_TYPES_QUERY_KEY = ['identifierTypes'];
 

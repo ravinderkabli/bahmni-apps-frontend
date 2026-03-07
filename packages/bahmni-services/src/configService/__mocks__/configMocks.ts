@@ -1,318 +1,177 @@
-import { DashboardConfig } from '../models';
-
-// Happy Path Mocks
-export const validFullClinicalConfig = {
-  patientInformation: {
-    displayPatientIdentifiers: true,
-    showPatientPhoto: true,
-    additionalAttributes: ['caste', 'education', 'occupation'],
-  },
-  contextInformation: {
-    program: {
-      fields: ['ID_Number', 'startDate', 'endDate', 'outcome', 'state'],
+export const mockVitalSignsSchema = {
+  $schema: 'http://json-schema.org/draft-07/schema#',
+  title: 'Vital Signs Configuration Schema',
+  description:
+    'Schema for configuring vital signs capture and display in the EMR system',
+  type: 'object',
+  required: ['vitalSigns', 'captureFrequency', 'alertThresholds'],
+  additionalProperties: false,
+  properties: {
+    vitalSigns: {
+      type: 'array',
+      description: 'List of vital signs to be captured',
+      minItems: 1,
+      items: {
+        type: 'object',
+        required: ['name', 'conceptUuid', 'unit', 'dataType'],
+        additionalProperties: false,
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Display name of the vital sign',
+            minLength: 1,
+          },
+          conceptUuid: {
+            type: 'string',
+            description: 'OpenMRS concept UUID for the vital sign',
+            pattern:
+              '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+          },
+          unit: {
+            type: 'string',
+            description: 'Unit of measurement',
+            minLength: 1,
+          },
+          dataType: {
+            type: 'string',
+            description: 'Type of data captured',
+            enum: ['numeric', 'text', 'boolean', 'coded'],
+          },
+          normalRange: {
+            type: 'object',
+            description: 'Normal range for the vital sign',
+            additionalProperties: false,
+            properties: {
+              min: {
+                type: 'number',
+                description: 'Minimum normal value',
+              },
+              max: {
+                type: 'number',
+                description: 'Maximum normal value',
+              },
+            },
+          },
+          mandatory: {
+            type: 'boolean',
+            description: 'Whether this vital sign is mandatory during capture',
+          },
+        },
+      },
     },
-  },
-  actions: [
-    {
-      name: 'Start Visit',
-      url: '/openmrs/ws/rest/v1/visit',
-      icon: 'fa fa-stethoscope',
-      requiredPrivilege: 'Start Visit',
+    captureFrequency: {
+      type: 'object',
+      description: 'Frequency settings for vital signs capture',
+      required: ['defaultInterval', 'unit'],
+      additionalProperties: false,
+      properties: {
+        defaultInterval: {
+          type: 'integer',
+          description: 'Default interval for capturing vital signs',
+          minimum: 1,
+        },
+        unit: {
+          type: 'string',
+          description: 'Time unit for the interval',
+          enum: ['minutes', 'hours', 'days'],
+        },
+        allowCustom: {
+          type: 'boolean',
+          description: 'Allow custom frequency settings',
+        },
+      },
     },
-    {
-      name: 'Add Diagnosis',
-      url: '/openmrs/ws/rest/v1/diagnosis',
-      icon: 'fa fa-heartbeat',
-      requiredPrivilege: 'Add Diagnosis',
-    },
-    {
-      name: 'Record Allergy',
-      url: '/openmrs/ws/rest/v1/allergy',
-      icon: 'fa fa-exclamation-triangle',
-      requiredPrivilege: 'Record Allergy',
-    },
-  ],
-  dashboards: [
-    {
-      name: 'Patient Information',
-      url: 'patient-information',
-      requiredPrivileges: ['View Patient Information'],
-      icon: 'fa fa-user',
-      default: true,
-    },
-    {
-      name: 'Conditions',
-      url: 'conditions',
-      requiredPrivileges: ['View Conditions'],
-      icon: 'fa fa-heartbeat',
-    },
-    {
-      name: 'Allergies',
-      url: 'allergies',
-      requiredPrivileges: ['View Allergies'],
-      icon: 'fa fa-exclamation-triangle',
-    },
-  ],
-  consultationPad: {
-    allergyConceptMap: {
-      medicationAllergenUuid: '162552AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      foodAllergenUuid: '162553AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      environmentalAllergenUuid: '162554AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      allergyReactionUuid: '162555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    alertThresholds: {
+      type: 'object',
+      description: 'Threshold configuration for vital signs alerts',
+      required: ['enabled'],
+      additionalProperties: false,
+      properties: {
+        enabled: {
+          type: 'boolean',
+          description: 'Enable alert system for abnormal vital signs',
+        },
+        notificationMethod: {
+          type: 'array',
+          description: 'Methods to use for notifications',
+          items: {
+            type: 'string',
+            enum: ['ui', 'email', 'sms'],
+          },
+        },
+      },
     },
   },
 };
 
-export const minimalClinicalConfig = {
-  patientInformation: {},
-  actions: [],
-  dashboards: [
+export const mockValidVitalSignsConfig = {
+  vitalSigns: [
     {
-      name: 'Basic Information',
-      url: 'basic-information',
-      requiredPrivileges: ['View Patient Dashboard'],
+      name: 'Blood Pressure',
+      conceptUuid: '5085f420-b8c8-4a3d-9c8f-1a7e3b4c5d6e',
+      unit: 'mmHg',
+      dataType: 'numeric',
+      normalRange: {
+        min: 90,
+        max: 140,
+      },
+      mandatory: true,
+    },
+    {
+      name: 'Heart Rate',
+      conceptUuid: '6f2a8d3c-1b4e-5c7a-9d8e-2f3a4b5c6d7e',
+      unit: 'bpm',
+      dataType: 'numeric',
+      normalRange: {
+        min: 60,
+        max: 100,
+      },
+      mandatory: true,
+    },
+    {
+      name: 'Temperature',
+      conceptUuid: '7e3b4c5d-2c5f-6d8b-a9f0-3e4f5a6b7c8d',
+      unit: '°C',
+      dataType: 'numeric',
+      normalRange: {
+        min: 36.5,
+        max: 37.5,
+      },
+      mandatory: false,
     },
   ],
-  consultationPad: {
-    allergyConceptMap: {
-      medicationAllergenUuid: '162552AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      foodAllergenUuid: '162553AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      environmentalAllergenUuid: '162554AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      allergyReactionUuid: '162555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    },
+  captureFrequency: {
+    defaultInterval: 4,
+    unit: 'hours',
+    allowCustom: true,
+  },
+  alertThresholds: {
+    enabled: true,
+    notificationMethod: ['ui', 'email'],
   },
 };
 
-export const mixedClinicalConfig = {
-  patientInformation: {
-    displayPatientIdentifiers: true,
-  },
-  actions: [
+export const mockInvalidVitalSignsConfig = {
+  vitalSigns: [
     {
-      name: 'Start Visit',
-      url: '/openmrs/ws/rest/v1/visit',
-      requiredPrivilege: 'Start Visit',
+      name: 'Blood Pressure',
+      conceptUuid: 'invalid-uuid-format',
+      unit: 'mmHg',
+      dataType: 'invalid-type',
+      normalRange: {
+        min: 90,
+        max: 140,
+      },
+      extraField: 'not allowed',
     },
   ],
-  dashboards: [
-    {
-      name: 'Required Section',
-      url: 'required-section',
-      requiredPrivileges: ['View Patient Dashboard'],
-    },
-    {
-      name: 'Optional Section',
-      url: 'optional-section',
-      requiredPrivileges: ['View Optional Dashboard'],
-      icon: 'fa fa-plus',
-      default: false,
-    },
-  ],
-  consultationPad: {
-    allergyConceptMap: {
-      medicationAllergenUuid: '162552AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      foodAllergenUuid: '162553AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      environmentalAllergenUuid: '162554AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      allergyReactionUuid: '162555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    },
+  captureFrequency: {
+    defaultInterval: -5,
+    unit: 'weeks',
   },
-};
-
-// Sad Path Mocks
-export const invalidClinicalConfig = {
-  // Missing required properties
-  patientInformation: {},
-  // Missing actions array
-  // Missing dashboards array
-  otherProperty: 'value',
-};
-
-export const emptyResponse = null;
-
-export const malformedJsonResponse = '{invalid-json}';
-
-// Edge Case Mocks
-export const largeConfig = {
-  patientInformation: {
-    displayPatientIdentifiers: true,
-    showPatientPhoto: true,
-    additionalAttributes: Array(50)
-      .fill(0)
-      .map((_, i) => `attribute${i}`),
+  alertThresholds: {
+    enabled: 'yes',
+    notificationMethod: ['invalid-method'],
   },
-  actions: Array(20)
-    .fill(0)
-    .map((_, i) => ({
-      name: `Action ${i}`,
-      url: `/openmrs/ws/rest/v1/action${i}`,
-      icon: 'fa fa-cog',
-      requiredPrivilege: `Privilege ${i}`,
-    })),
-  dashboards: generateLargeDashboards(50), // Generates 50 dashboards
-  consultationPad: {
-    allergyConceptMap: {
-      medicationAllergenUuid: '162552AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      foodAllergenUuid: '162553AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      environmentalAllergenUuid: '162554AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      allergyReactionUuid: '162555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    },
-  },
-};
-
-export const allOptionalFieldsConfig = {
-  patientInformation: {
-    displayPatientIdentifiers: true,
-    showPatientPhoto: true,
-    additionalAttributes: ['caste', 'education', 'occupation'],
-    customSections: [
-      {
-        name: 'Demographics',
-        attributes: ['birthdate', 'gender', 'address'],
-      },
-      {
-        name: 'Contact Information',
-        attributes: ['phoneNumber', 'email'],
-      },
-    ],
-  },
-  actions: [
-    {
-      name: 'Comprehensive Action',
-      url: '/openmrs/ws/rest/v1/comprehensive',
-      icon: 'fa fa-th-large',
-      requiredPrivilege: 'Comprehensive Privilege',
-      order: 1,
-      type: 'standard',
-      additionalParams: {
-        color: 'blue',
-        size: 'large',
-        showInHeader: true,
-      },
-    },
-  ],
-  dashboards: [
-    {
-      name: 'Comprehensive Dashboard',
-      url: 'comprehensive-dashboard',
-      requiredPrivileges: ['View Comprehensive Dashboard'],
-      icon: 'fa fa-th-large',
-      default: true,
-      order: 1,
-      displayName: 'Comprehensive View',
-      description: 'A dashboard with all possible controls and features',
-      config: {
-        refreshInterval: 60,
-        layout: 'grid',
-        maxItems: 10,
-      },
-    },
-  ],
-  consultationPad: {
-    allergyConceptMap: {
-      medicationAllergenUuid: '162552AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      foodAllergenUuid: '162553AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      environmentalAllergenUuid: '162554AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      allergyReactionUuid: '162555AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    },
-  },
-};
-
-// Helper function to generate large config
-function generateLargeDashboards(count: number) {
-  const dashboards = [];
-  const icons = [
-    'fa fa-user',
-    'fa fa-heartbeat',
-    'fa fa-hospital',
-    'fa fa-medkit',
-  ];
-
-  for (let i = 0; i < count; i++) {
-    dashboards.push({
-      name: `Dashboard ${i}`,
-      url: `dashboard-${i}`,
-      requiredPrivileges: [`View Dashboard ${i}`],
-      icon: icons[i % icons.length],
-      default: i === 0, // First one is default
-    });
-  }
-
-  return dashboards;
-}
-
-// Mock dashboard configs for testing
-export const validDashboardConfig: DashboardConfig = {
-  sections: [
-    {
-      id: 'vitals',
-      name: 'Vitals',
-      icon: 'heartbeat',
-      controls: [],
-    },
-    {
-      id: 'medications',
-      name: 'Medications',
-      icon: 'pills',
-      controls: [],
-    },
-  ],
-};
-
-export const validRegistrationConfig = {
-  patientSearch: {
-    customAttributes: [
-      {
-        translationKey: 'REGISTRATION_PATIENT_SEARCH_DROPDOWN_PHONE_NUMBER',
-        fields: ['phoneNumber', 'alternatePhoneNumber'],
-        columnTranslationKeys: [
-          'REGISTRATION_PATIENT_SEARCH_HEADER_PHONE_NUMBER',
-          'REGISTRATION_PATIENT_SEARCH_HEADER_ALTERNATE_PHONE_NUMBER',
-        ],
-        type: 'person',
-      },
-      {
-        translationKey: 'REGISTRATION_PATIENT_SEARCH_DROPDOWN_EMAIL',
-        fields: ['email'],
-        columnTranslationKeys: ['REGISTRATION_PATIENT_SEARCH_HEADER_EMAIL'],
-        type: 'person',
-      },
-      {
-        translationKey: 'REGISTRATION_PATIENT_SEARCH_DROPDOWN_VILLAGE',
-        fields: ['village'],
-        columnTranslationKeys: ['REGISTRATION_PATIENT_SEARCH_HEADER_VILLAGE'],
-        type: 'address',
-      },
-      {
-        translationKey: 'REGISTRATION_PATIENT_SEARCH_DROPDOWN_LOCALITY',
-        fields: ['locality'],
-        columnTranslationKeys: ['REGISTRATION_PATIENT_SEARCH_HEADER_LOCALITY'],
-        type: 'address',
-      },
-      {
-        translationKey: 'REGISTRATION_PATIENT_SEARCH_DROPDOWN_PROGRAM_NAME',
-        fields: ['programName'],
-        columnTranslationKeys: [
-          'REGISTRATION_PATIENT_SEARCH_HEADER_PROGRAM_NAME',
-        ],
-        type: 'program',
-      },
-    ],
-  },
-};
-
-export const invalidDashboardConfig = {
-  sections: [
-    {
-      id: 'vitals',
-      icon: 'heartbeat',
-      translationKey: 'DASHBOARD_VITALS_KEY',
-      controls: [],
-    },
-    {
-      id: 'medications',
-      name: 'Medications',
-      icon: 'pills',
-      controls: [],
-    },
-  ],
+  unexpectedProperty: 'should fail validation',
 };

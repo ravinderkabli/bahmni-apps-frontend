@@ -12,14 +12,19 @@ import {
   getPatientMedicationBundle,
   useSubscribeConsultationSaved,
   ConsultationSavedEventPayload,
+  getConfig,
+  fetchMedicationOrdersMetadata,
 } from '@bahmni/services';
 import { usePatientUUID } from '@bahmni/widgets';
 import { useQuery } from '@tanstack/react-query';
 import { Bundle } from 'fhir/r4';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 
-import useMedicationConfig from '../../../hooks/useMedicationConfig';
 import { MedicationFilterResult } from '../../../models/medication';
+import {
+  MedicationConfig,
+  MedicationJSONConfig,
+} from '../../../models/medicationConfig';
 import {
   getMedicationDisplay,
   getMedicationsFromBundle,
@@ -31,6 +36,8 @@ import {
   isDuplicateMedication,
   medicationsMatchByCode,
 } from '../../../utils/fhir/medicationUtilities';
+import { MEDICATIONS_CONFIG_URL } from '../medications/constants';
+import medicationConfigSchema from '../medications/schema.json';
 
 import SelectedVaccinationItem from './SelectedVaccinationItem';
 import styles from './styles/VaccinationForm.module.scss';
@@ -51,10 +58,22 @@ const VaccinationForm: React.FC = React.memo(() => {
     null,
   );
   const {
-    medicationConfig,
-    loading: medicationConfigLoading,
+    data: medicationConfig,
+    isLoading: medicationConfigLoading,
     error: medicationConfigError,
-  } = useMedicationConfig();
+  } = useQuery({
+    queryKey: ['medicationConfig'],
+    queryFn: async () => {
+      const [jsonConfig, metadata] = await Promise.all([
+        getConfig<MedicationJSONConfig>(
+          MEDICATIONS_CONFIG_URL,
+          medicationConfigSchema,
+        ),
+        fetchMedicationOrdersMetadata(),
+      ]);
+      return { ...metadata, ...jsonConfig } as MedicationConfig;
+    },
+  });
 
   const {
     data: vaccinationsBundle,

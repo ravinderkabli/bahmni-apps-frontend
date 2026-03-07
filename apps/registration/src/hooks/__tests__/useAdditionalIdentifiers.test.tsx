@@ -1,14 +1,14 @@
 import { getIdentifierTypes } from '@bahmni/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
+import { useRegistrationConfig } from '../../providers/registrationConfig';
 import { useAdditionalIdentifiers } from '../useAdditionalIdentifiers';
-import { useRegistrationConfig } from '../useRegistrationConfig';
 
 // Mock dependencies
 jest.mock('@bahmni/services', () => ({
   getIdentifierTypes: jest.fn(),
 }));
-jest.mock('../useRegistrationConfig');
+jest.mock('../../providers/registrationConfig');
 
 const mockIdentifierTypes = [
   {

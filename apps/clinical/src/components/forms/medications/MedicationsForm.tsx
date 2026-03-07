@@ -7,6 +7,8 @@ import {
   InlineNotification,
 } from '@bahmni/design-system';
 import {
+  getConfig,
+  fetchMedicationOrdersMetadata,
   useTranslation,
   getPatientMedicationBundle,
   useSubscribeConsultationSaved,
@@ -16,10 +18,12 @@ import { useNotification, usePatientUUID } from '@bahmni/widgets';
 import { useQuery } from '@tanstack/react-query';
 import { Bundle } from 'fhir/r4';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-
-import useMedicationConfig from '../../../hooks/useMedicationConfig';
 import { useMedicationSearch } from '../../../hooks/useMedicationSearch';
 import { MedicationFilterResult } from '../../../models/medication';
+import {
+  MedicationConfig,
+  MedicationJSONConfig,
+} from '../../../models/medicationConfig';
 import {
   getMedicationDisplay,
   getActiveMedicationsFromBundle,
@@ -29,6 +33,8 @@ import {
   checkMedicationsOverlap,
   medicationsMatchByCode,
 } from '../../../utils/fhir/medicationUtilities';
+import { MEDICATIONS_CONFIG_URL } from './constants';
+import medicationConfigSchema from './schema.json';
 import SelectedMedicationItem from './SelectedMedicationItem';
 import styles from './styles/MedicationsForm.module.scss';
 
@@ -50,10 +56,23 @@ const MedicationsForm: React.FC = React.memo(() => {
   const [selectedMedicationItem, setSelectedMedicationItem] =
     useState<MedicationFilterResult | null>(null);
   const {
-    medicationConfig,
-    loading: medicationConfigLoading,
+    data: medicationConfig,
+    isLoading: medicationConfigLoading,
     error: medicationConfigError,
-  } = useMedicationConfig();
+  } = useQuery({
+    queryKey: ['medicationConfig'],
+    queryFn: async () => {
+      const [jsonConfig, metadata] = await Promise.all([
+        getConfig<MedicationJSONConfig>(
+          MEDICATIONS_CONFIG_URL,
+          medicationConfigSchema,
+        ),
+        fetchMedicationOrdersMetadata(),
+      ]);
+      return { ...metadata, ...jsonConfig } as MedicationConfig;
+    },
+  });
+
   const { searchResults, loading, error } =
     useMedicationSearch(searchMedicationTerm);
 

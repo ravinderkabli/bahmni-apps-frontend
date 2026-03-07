@@ -14,7 +14,7 @@ import { REGISTRATION_NAMESPACE } from './constants/app';
 import PatientRegister from './pages/PatientRegister/PatientRegister';
 import PatientSearchPage from './pages/patientSearchPage';
 import { PersonAttributesProvider } from './providers/PersonAttributesProvider';
-import { RegistrationConfigProvider } from './providers/RegistrationConfigProvider';
+import { RegistrationConfigProvider } from './providers/registrationConfig';
 
 const queryClient = new QueryClient(queryClientConfig);
 

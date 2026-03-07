@@ -17,5 +17,12 @@
     "strict": true,
     "target": "es2022",
     "customConditions": ["@bahmni/source"]
-  }
+  },
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.json"
+  ]
 }

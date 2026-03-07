@@ -1,13 +1,13 @@
 import { getOrderedAddressHierarchyLevels } from '@bahmni/services';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useRegistrationConfig } from '../providers/registrationConfig';
 import {
   useAddressFields,
   type AddressLevel,
   type AddressHierarchyConfig,
   type AddressData,
 } from './useAddressFields';
-import { useRegistrationConfig } from './useRegistrationConfig';
 
 export function useAddressFieldsWithConfig(initialAddress?: AddressData) {
   const {

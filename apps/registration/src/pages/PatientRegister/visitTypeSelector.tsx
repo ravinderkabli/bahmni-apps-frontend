@@ -1,8 +1,8 @@
 import { Button, Dropdown } from '@bahmni/design-system';
 import { useTranslation } from '@bahmni/services';
 import { useParams } from 'react-router-dom';
-import { useRegistrationConfig } from '../../hooks/useRegistrationConfig';
 import { useActiveVisit, useVisitTypes } from '../../hooks/useVisit';
+import { useRegistrationConfig } from '../../providers/registrationConfig';
 import { transformVisitTypesToArray } from '../../utils/visitUtils';
 import styles from './styles/VisitTypeSelector.module.scss';
 

@@ -26,14 +26,16 @@ export interface ContextInformation {
   program?: ProgramConfig;
 }
 
-/**
- * Dashboard configuration interface matching appConfig.schema.json
- * Represents the structure of the main dashboard configuration
- */
 export interface ClinicalConfig {
   patientInformation: Record<string, unknown>;
   contextInformation?: ContextInformation;
   actions: Array<unknown>;
   dashboards: Array<Dashboard>;
   consultationPad: ConsultationPad;
+}
+
+export interface ClinicalConfigContextType {
+  clinicalConfig: ClinicalConfig | null | undefined;
+  isLoading: boolean;
+  error: Error | null;
 }

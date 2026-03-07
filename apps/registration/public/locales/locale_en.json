@@ -83,6 +83,8 @@
   "DATE_ERROR_NULL_OR_UNDEFINED": "Date is null or undefined",
   "DATE_ERROR_PARSE": "Date Parse Error",
   "ENTER_VISIT_DETAILS": "Enter Visit Details",
+  "ERROR_CONFIG_GENERIC_MESSAGE": "Unable to load {{config}}. Please try refreshing the page.",
+  "ERROR_CONFIG_TITLE": "{{config}} Error",
   "ERROR_DEFAULT_TITLE": "Error",
   "ERROR_LOADING_PATIENT_DETAILS": "Error Loading Patient Details",
   "ERROR_LOADING_PATIENT_PHOTO": "Error Loading Patient Photo",
@@ -154,6 +156,7 @@
   "NOTIFICATION_UNABLE_TO_GET_ADDITIONAL_DATA": "Unable to get patient additional data",
   "REGISTRATION_DAYS_SHORT": "d",
   "REGISTRATION_MONTHS_SHORT": "m",
+  "REGISTRATION_PATIENT_SEARCH_APPOINTMENT": "Search by Appointment",
   "REGISTRATION_YEARS_SHORT": "y",
   "SUCCESS": "Success",
   "VIEWED_REGISTRATION_PATIENT_SEARCH_MESSAGE": "User {{username}} accessed patient search screen in registration app"

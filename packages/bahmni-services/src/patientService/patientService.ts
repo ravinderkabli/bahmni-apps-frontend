@@ -1,7 +1,6 @@
 import { Patient } from 'fhir/r4';
 import { get, post } from '../api';
 import { APP_PROPERTY_URL } from '../applicationConfigService/constants';
-import { PatientSearchField } from '../configService/models/registrationConfig';
 import { calculateAge } from '../date';
 import { getUserLoginLocation } from '../userService';
 import { blobToDataUrl } from '../utils';
@@ -25,6 +24,7 @@ import {
   RELATIONSHIP_TYPES_URL,
 } from './constants';
 import {
+  PatientSearchField,
   FormattedPatientData,
   PatientSearchResultBundle,
   IdentifierTypesResponse,

@@ -38,6 +38,7 @@ jest.mock('@bahmni/services', () => ({
 }));
 
 jest.mock('@bahmni/widgets', () => ({
+  ...jest.requireActual('@bahmni/widgets'),
   useNotification: jest.fn(),
 }));
 
@@ -48,7 +49,7 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('../../../hooks/useCreatePatient');
 jest.mock('../../../hooks/useUpdatePatient');
-jest.mock('../../../hooks/useRegistrationConfig');
+jest.mock('../../../providers/registrationConfig');
 jest.mock('../../../hooks/useAdditionalIdentifiers');
 jest.mock('../../../hooks/usePatientDetails');
 jest.mock('../../../hooks/usePatientPhoto');

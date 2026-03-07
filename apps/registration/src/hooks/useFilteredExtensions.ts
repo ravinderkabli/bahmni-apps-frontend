@@ -1,6 +1,9 @@
-import { AppExtensionConfig, hasPrivilege } from '@bahmni/services';
+import { hasPrivilege } from '@bahmni/services';
 import { useUserPrivilege } from '@bahmni/widgets';
-import { useRegistrationConfig } from './useRegistrationConfig';
+import {
+  useRegistrationConfig,
+  AppExtensionConfig,
+} from '../providers/registrationConfig';
 
 interface UseFilteredExtensionsProps {
   extensionPointId?: string;

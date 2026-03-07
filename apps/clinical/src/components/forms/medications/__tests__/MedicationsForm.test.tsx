@@ -1,11 +1,15 @@
 import { useNotification, usePatientUUID } from '@bahmni/widgets';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Medication } from 'fhir/r4';
 import { axe, toHaveNoViolations } from 'jest-axe';
-
-import useMedicationConfig from '../../../../hooks/useMedicationConfig';
+import { ReactNode } from 'react';
 import { useMedicationSearch } from '../../../../hooks/useMedicationSearch';
 import { MedicationInputEntry } from '../../../../models/medication';
 import { MedicationConfig } from '../../../../models/medicationConfig';
@@ -18,7 +22,10 @@ expect.extend(toHaveNoViolations);
 jest.mock('../../../../stores/medicationsStore');
 jest.mock('../../../../models/medicationConfig');
 jest.mock('../../../../hooks/useMedicationSearch');
-jest.mock('../../../../hooks/useMedicationConfig');
+jest.mock('@bahmni/services', () => ({
+  ...jest.requireActual('@bahmni/services'),
+  getConfig: jest.fn(),
+}));
 jest.mock('../../../../services/medicationService', () => ({
   getMedicationDisplay: jest.fn(
     (medication) =>
@@ -42,6 +49,7 @@ jest.mock('@bahmni/widgets', () => {
 
 // Mock TanStack Query
 jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
   useQuery: jest.fn(),
   useQueryClient: jest.fn(),
 }));
@@ -152,16 +160,26 @@ const mockStore = {
   getState: jest.fn(),
 };
 
-const mockMedicationConfigHook = {
-  medicationConfig: mockMedicationConfig,
-  loading: false,
-  error: null,
-};
-
 const mockMedicationSearchHook = {
   searchResults: [],
   loading: false,
   error: null,
+};
+
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQueryClient = (ui: ReactNode) => {
+  const queryClient = createQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
 };
 
 describe('MedicationsForm', () => {
@@ -171,9 +189,6 @@ describe('MedicationsForm', () => {
     window.HTMLElement.prototype.scrollIntoView = jest.fn();
 
     (useMedicationStore as unknown as jest.Mock).mockReturnValue(mockStore);
-    (useMedicationConfig as jest.Mock).mockReturnValue(
-      mockMedicationConfigHook,
-    );
     (useMedicationSearch as jest.Mock).mockReturnValue(
       mockMedicationSearchHook,
     );
@@ -186,7 +201,7 @@ describe('MedicationsForm', () => {
 
     // Mock TanStack Query for existing medications
     mockUseQuery.mockReturnValue({
-      data: [],
+      data: mockMedicationConfig,
       isLoading: false,
       error: null,
     } as ReturnType<typeof useQuery>);
@@ -200,7 +215,7 @@ describe('MedicationsForm', () => {
   // HAPPY PATH TESTS
   describe('Happy Path Scenarios', () => {
     test('renders medication search box correctly', () => {
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       expect(
         screen.getByRole('combobox', { name: /search to add medication/i }),
@@ -208,7 +223,7 @@ describe('MedicationsForm', () => {
     });
 
     test('renders form title correctly', () => {
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       expect(screen.getByText(/prescribe medication/i)).toBeInTheDocument();
     });
@@ -220,7 +235,7 @@ describe('MedicationsForm', () => {
         searchResults: [mockMedication],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -307,7 +322,7 @@ describe('MedicationsForm', () => {
         };
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -362,7 +377,7 @@ describe('MedicationsForm', () => {
         selectedMedications: [mockSelectedMedication],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       expect(screen.getByText(/added medicines/i)).toBeInTheDocument();
       expect(screen.getByText(/Paracetamol 500mg/)).toBeInTheDocument();
@@ -375,7 +390,7 @@ describe('MedicationsForm', () => {
         selectedMedications: [mockSelectedMedication],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       // Find the close button by its aria-label from SelectedItem component
       const closeButton = screen.getByRole('button', {
@@ -391,7 +406,7 @@ describe('MedicationsForm', () => {
     });
 
     test('does not show selected medications section when no medications selected', () => {
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       expect(screen.queryByText(/added medicines/i)).not.toBeInTheDocument();
     });
@@ -406,7 +421,7 @@ describe('MedicationsForm', () => {
         loading: true,
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -426,7 +441,7 @@ describe('MedicationsForm', () => {
         error,
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -447,7 +462,7 @@ describe('MedicationsForm', () => {
         searchResults: [],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -472,7 +487,7 @@ describe('MedicationsForm', () => {
         selectedMedications: [mockSelectedMedication],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       // Should show the selected medication in the added medicines section
       expect(screen.getByText(/added medicines/i)).toBeInTheDocument();
@@ -508,7 +523,7 @@ describe('MedicationsForm', () => {
         selectedMedications: [mockSelectedMedication],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -537,7 +552,7 @@ describe('MedicationsForm', () => {
     });
 
     test('does not add medication when selected item is invalid', async () => {
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -559,26 +574,26 @@ describe('MedicationsForm', () => {
     });
 
     test('shows loading skeleton when medication config is loading', () => {
-      (useMedicationConfig as jest.Mock).mockReturnValue({
-        ...mockMedicationConfigHook,
-        loading: true,
+      (useQuery as jest.Mock).mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        error: null,
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
-      // Should show loading skeleton (look for skeleton class)
       expect(document.querySelector('.cds--skeleton')).toBeInTheDocument();
     });
 
     test('shows error when medication config fails to load', () => {
       const error = new Error('Failed to load medication config');
-      (useMedicationConfig as jest.Mock).mockReturnValue({
-        ...mockMedicationConfigHook,
-        loading: false,
+      (useQuery as jest.Mock).mockReturnValue({
+        data: undefined,
+        isLoading: false,
         error,
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       expect(
         screen.getByText(/Error fetching medication configuration/i),
@@ -589,9 +604,9 @@ describe('MedicationsForm', () => {
   // EDGE CASES
   describe('Edge Cases', () => {
     test('handles missing medication config gracefully', () => {
-      (useMedicationConfig as jest.Mock).mockReturnValue({
-        medicationConfig: null,
-        loading: false,
+      (useQuery as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: false,
         error: null,
       });
       (useMedicationStore as unknown as jest.Mock).mockReturnValue({
@@ -599,9 +614,8 @@ describe('MedicationsForm', () => {
         selectedMedications: [mockSelectedMedication],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
-      // Should not show selected medications section without config
       expect(screen.queryByText(/added medicines/i)).not.toBeInTheDocument();
     });
 
@@ -613,7 +627,7 @@ describe('MedicationsForm', () => {
         searchResults: [medicationWithoutId],
       });
 
-      render(<MedicationsForm />);
+      renderWithQueryClient(<MedicationsForm />);
 
       const searchBox = screen.getByRole('combobox', {
         name: /search to add medication/i,
@@ -661,7 +675,7 @@ describe('MedicationsForm', () => {
 
   describe('Accessibility', () => {
     test('should have no accessibility violations', async () => {
-      const { container } = render(<MedicationsForm />);
+      const { container } = renderWithQueryClient(<MedicationsForm />);
 
       const results = await axe(container);
       expect(results).toHaveNoViolations();
@@ -851,7 +865,7 @@ describe('MedicationsForm', () => {
   // SNAPSHOT TESTS
   describe('Snapshot Tests', () => {
     test('matches snapshot with no medications', () => {
-      const { container } = render(<MedicationsForm />);
+      const { container } = renderWithQueryClient(<MedicationsForm />);
       expect(container).toMatchSnapshot();
     });
 
@@ -861,7 +875,7 @@ describe('MedicationsForm', () => {
         selectedMedications: [mockSelectedMedication],
       });
 
-      const { container } = render(<MedicationsForm />);
+      const { container } = renderWithQueryClient(<MedicationsForm />);
       expect(container).toMatchSnapshot();
     });
   });

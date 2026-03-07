@@ -32,9 +32,9 @@ import {
   VALIDATION_STATE_SCRIPT_ERROR,
 } from '../../constants/forms';
 import { useClinicalAppData } from '../../hooks/useClinicalAppData';
-import { useClinicalConfig } from '../../hooks/useClinicalConfig';
 import useObservationFormsSearch from '../../hooks/useObservationFormsSearch';
 import { usePinnedObservationForms } from '../../hooks/usePinnedObservationForms';
+import { useClinicalConfig } from '../../providers/clinicalConfig';
 import {
   postConsultationBundle,
   createDiagnosisBundleEntries,

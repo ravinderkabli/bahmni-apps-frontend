@@ -2,15 +2,15 @@ import * as services from '@bahmni/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
+import * as useRegistrationConfigModule from '../../providers/registrationConfig';
 import {
   useAddressFieldsWithConfig,
   useAddressHierarchyLevels,
 } from '../useAddressFieldsWithConfig';
-import * as useRegistrationConfigModule from '../useRegistrationConfig';
 
 // Mock dependencies
 jest.mock('@bahmni/services');
-jest.mock('../useRegistrationConfig');
+jest.mock('../../providers/registrationConfig');
 
 const mockGetOrderedAddressHierarchyLevels =
   services.getOrderedAddressHierarchyLevels as jest.MockedFunction<
