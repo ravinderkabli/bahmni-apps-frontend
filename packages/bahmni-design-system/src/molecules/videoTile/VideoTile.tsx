@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import React, { useState } from 'react';
 import { Modal } from '../../atoms/modal';
+import { DOCUMENT_AUTH_BASE_URL } from '../shared/constants';
 import styles from './styles/VideoTile.module.scss';
 
 export interface VideoTileProps {
@@ -11,8 +12,6 @@ export interface VideoTileProps {
   onModalOpen?: () => void;
   onModalClose?: () => void;
 }
-
-const baseURL = '/openmrs/auth?requested_document=/document_images/';
 
 export const VideoTile: React.FC<VideoTileProps> = ({
   videoSrc,
@@ -52,7 +51,10 @@ export const VideoTile: React.FC<VideoTileProps> = ({
           preload="metadata"
           muted
         >
-          <source src={`${baseURL}${videoSrc}#t=0.1`} type="video/mp4" />
+          <source
+            src={`${DOCUMENT_AUTH_BASE_URL}${videoSrc}#t=0.1`}
+            type="video/mp4"
+          />
         </video>
         <div className={styles.playIconOverlay}>
           <svg
@@ -82,7 +84,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
               id={`${id}-modal-video`}
               data-testid={`${id}-modal-video-test-id`}
               aria-label={`${id}-modal-video-aria-label`}
-              src={baseURL + videoSrc}
+              src={DOCUMENT_AUTH_BASE_URL + videoSrc}
               className={styles.modalVideo}
               controls
               autoPlay

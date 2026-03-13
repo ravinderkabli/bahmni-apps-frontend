@@ -1,4 +1,4 @@
-import { ImageTile, VideoTile } from '@bahmni/design-system';
+import { ImageTile, VideoTile, FileTile } from '@bahmni/design-system';
 import { getValueType } from '@bahmni/services';
 import classNames from 'classnames';
 import React from 'react';
@@ -40,6 +40,10 @@ const renderValueWithMedia = (valueAsString: string): React.ReactNode => {
 
   if (valueType === 'Video') {
     return <VideoTile id={`${valueAsString}-video`} videoSrc={valueAsString} />;
+  }
+
+  if (valueType === 'PDF') {
+    return <FileTile id={`${valueAsString}-pdf`} src={valueAsString} />;
   }
 
   return valueAsString;

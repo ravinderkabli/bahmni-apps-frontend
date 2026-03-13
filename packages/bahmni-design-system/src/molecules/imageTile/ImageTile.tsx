@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import React, { useState } from 'react';
 import { Modal } from '../../atoms/modal';
+import { DOCUMENT_AUTH_BASE_URL } from '../shared/constants';
 import styles from './styles/ImageTile.module.scss';
 
 export interface ImageTileProps {
@@ -12,8 +13,6 @@ export interface ImageTileProps {
   onModalOpen?: () => void;
   onModalClose?: () => void;
 }
-
-const baseURL = '/openmrs/auth?requested_document=/document_images/';
 
 export const ImageTile: React.FC<ImageTileProps> = ({
   imageSrc,
@@ -50,7 +49,7 @@ export const ImageTile: React.FC<ImageTileProps> = ({
           id={`${id}-thumbnail`}
           data-testid={`${id}-thumbnail-test-id`}
           aria-label={`${id}-thumbnail-aria-label`}
-          src={baseURL + imageSrc}
+          src={DOCUMENT_AUTH_BASE_URL + imageSrc}
           alt={alt}
           className={styles.thumbnailImage}
           loading="lazy"
@@ -73,7 +72,7 @@ export const ImageTile: React.FC<ImageTileProps> = ({
               id={`${id}-modal-image`}
               data-testid={`${id}-modal-image-test-id`}
               aria-label={`${id}-modal-image-aria-label`}
-              src={baseURL + imageSrc}
+              src={DOCUMENT_AUTH_BASE_URL + imageSrc}
               alt={alt}
               className={styles.modalImage}
             />

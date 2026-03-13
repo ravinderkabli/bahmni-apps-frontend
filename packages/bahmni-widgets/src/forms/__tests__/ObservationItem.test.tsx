@@ -23,6 +23,11 @@ jest.mock('@bahmni/design-system', () => ({
       Video: {videoSrc}
     </div>
   ),
+  FileTile: ({ src, id }: any) => (
+    <div data-testid="file-tile" data-src={src} data-id={id}>
+      File: {src}
+    </div>
+  ),
 }));
 
 // Mock the services
@@ -43,6 +48,9 @@ jest.mock('@bahmni/services', () => ({
       lower.endsWith('.mov')
     ) {
       return 'Video';
+    }
+    if (lower.endsWith('.pdf')) {
+      return 'PDF';
     }
     return 'string';
   },
@@ -454,6 +462,55 @@ describe('ObservationItem', () => {
       expect(videoTile).toHaveAttribute(
         'data-src',
         'http://example.com/surgery.avi',
+      );
+    });
+
+    it('should render FileTile for PDF values in top-level observations', () => {
+      const observation: ExtractedObservation = {
+        id: 'doc-uuid',
+        display: 'Consultation Document',
+        observationValue: {
+          value: '100/55-Consultation-abc123.pdf',
+          type: 'string',
+        },
+      };
+
+      render(<ObservationItem observation={observation} index={0} />);
+
+      const fileTile = screen.getByTestId('file-tile');
+      expect(fileTile).toBeInTheDocument();
+      expect(fileTile).toHaveAttribute(
+        'data-src',
+        '100/55-Consultation-abc123.pdf',
+      );
+      expect(
+        screen.getByText(/File: 100\/55-Consultation-abc123.pdf/),
+      ).toBeInTheDocument();
+    });
+
+    it('should render FileTile for PDF values in group members', () => {
+      const observation: ExtractedObservation = {
+        id: 'docs-uuid',
+        display: 'Consultation Images',
+        members: [
+          {
+            id: 'report-uuid',
+            display: 'Lab Report',
+            observationValue: {
+              value: '100/9-Consultation-xyz789.pdf',
+              type: 'string',
+            },
+          },
+        ],
+      };
+
+      render(<ObservationItem observation={observation} index={0} />);
+
+      const fileTile = screen.getByTestId('file-tile');
+      expect(fileTile).toBeInTheDocument();
+      expect(fileTile).toHaveAttribute(
+        'data-src',
+        '100/9-Consultation-xyz789.pdf',
       );
     });
   });

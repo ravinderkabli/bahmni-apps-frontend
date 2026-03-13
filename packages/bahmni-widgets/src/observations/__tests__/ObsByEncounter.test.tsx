@@ -1,5 +1,5 @@
 import { getValueType } from '@bahmni/services';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import {
   mockBundleWithMultipleEncounters,
@@ -13,6 +13,15 @@ import {
 } from '../utils';
 
 expect.extend(toHaveNoViolations);
+
+jest.mock('@bahmni/design-system', () => ({
+  ...jest.requireActual('@bahmni/design-system'),
+  FileTile: ({ src, id }: any) => (
+    <div data-testid="file-tile" data-src={src} data-id={id}>
+      File: {src}
+    </div>
+  ),
+}));
 
 const mockGetValueType = getValueType as jest.MockedFunction<
   typeof getValueType
@@ -169,6 +178,31 @@ describe('ObsByEncounter', () => {
       render(<ObsByEncounter groupedData={groupedData} />);
 
       expect(screen.getByText('98.6°F')).toBeInTheDocument();
+    });
+
+    it('should render FileTile when observation value is a PDF document', () => {
+      const pdfPath = '100/55-Consultation-27627c65.pdf';
+      mockGetValueType.mockReturnValue('PDF');
+      mockTransformObservationToRowCell.mockReturnValueOnce({
+        index: 0,
+        header: 'Consultation Document',
+        value: pdfPath,
+        provider: 'Dr. Smith',
+      });
+
+      const result = extractObservationsFromBundle(
+        mockBundleWithMixedObservations,
+      );
+      const groupedData = groupObservationsByEncounter(result);
+
+      const { container } = render(
+        <ObsByEncounter groupedData={groupedData} />,
+      );
+
+      const fileTile = within(container)
+        .queryAllByTestId('file-tile')
+        .find((element) => element.getAttribute('data-src') === pdfPath);
+      expect(fileTile).toBeInTheDocument();
     });
   });
 

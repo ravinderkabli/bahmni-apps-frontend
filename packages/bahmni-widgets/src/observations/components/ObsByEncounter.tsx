@@ -3,6 +3,7 @@ import {
   ImageTile,
   RowCell,
   VideoTile,
+  FileTile,
 } from '@bahmni/design-system';
 import { getValueType, useTranslation } from '@bahmni/services';
 import React from 'react';
@@ -34,6 +35,9 @@ const renderObservation = (
 
   if (valueType === 'Video')
     valueToDisplay = <VideoTile id={`${value}-video`} videoSrc={value} />;
+
+  if (valueType === 'PDF')
+    valueToDisplay = <FileTile id={`${value}-pdf`} src={value} />;
 
   const info = t('OBSERVATIONS_RECORDED_BY', {
     provider: rowData.provider,
