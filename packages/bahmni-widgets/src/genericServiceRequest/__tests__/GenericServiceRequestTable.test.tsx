@@ -1,13 +1,10 @@
 import {
-  groupByDate,
-  formatDate,
-  FULL_MONTH_DATE_FORMAT,
-  ISO_DATE_FORMAT,
   useTranslation,
   getFormattedError,
   getCategoryUuidFromOrderTypes,
   getServiceRequests,
   useSubscribeConsultationSaved,
+  shouldEnableEncounterFilter,
 } from '@bahmni/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -20,8 +17,8 @@ import GenericServiceRequestTable from '../GenericServiceRequestTable';
 import { ServiceRequestViewModel } from '../models';
 import {
   filterServiceRequestReplacementEntries,
+  getServiceRequestPriority,
   mapServiceRequest,
-  sortServiceRequestsByPriority,
 } from '../utils';
 
 expect.extend(toHaveNoViolations);
@@ -29,18 +26,17 @@ expect.extend(toHaveNoViolations);
 jest.mock('@bahmni/services', () => ({
   ...jest.requireActual('@bahmni/services'),
   useTranslation: jest.fn(),
-  groupByDate: jest.fn(),
-  formatDate: jest.fn(),
   getFormattedError: jest.fn(),
   getCategoryUuidFromOrderTypes: jest.fn(),
   getServiceRequests: jest.fn(),
   useSubscribeConsultationSaved: jest.fn(),
+  shouldEnableEncounterFilter: jest.fn(),
 }));
 
 jest.mock('../utils', () => ({
   filterServiceRequestReplacementEntries: jest.fn(),
+  getServiceRequestPriority: jest.fn(),
   mapServiceRequest: jest.fn(),
-  sortServiceRequestsByPriority: jest.fn(),
 }));
 
 jest.mock('../../hooks/usePatientUUID', () => ({
@@ -51,42 +47,25 @@ jest.mock('../../notification', () => ({
   useNotification: jest.fn(),
 }));
 
-const mockUseTranslation = useTranslation as jest.MockedFunction<
-  typeof useTranslation
->;
-const mockGroupByDate = groupByDate as jest.MockedFunction<typeof groupByDate>;
-const mockFormatDate = formatDate as jest.MockedFunction<typeof formatDate>;
-const mockGetFormattedError = getFormattedError as jest.MockedFunction<
-  typeof getFormattedError
->;
-const mockGetCategoryUuidFromOrderTypes =
-  getCategoryUuidFromOrderTypes as jest.MockedFunction<
-    typeof getCategoryUuidFromOrderTypes
-  >;
-const mockGetServiceRequests = getServiceRequests as jest.MockedFunction<
-  typeof getServiceRequests
->;
-const mockFilterServiceRequestReplacementEntries =
-  filterServiceRequestReplacementEntries as jest.MockedFunction<
-    typeof filterServiceRequestReplacementEntries
-  >;
-const mockMapServiceRequest = mapServiceRequest as jest.MockedFunction<
-  typeof mapServiceRequest
->;
-const mockSortServiceRequestsByPriority =
-  sortServiceRequestsByPriority as jest.MockedFunction<
-    typeof sortServiceRequestsByPriority
-  >;
-const mockUsePatientUUID = usePatientUUID as jest.MockedFunction<
-  typeof usePatientUUID
->;
-const mockUseNotification = useNotification as jest.MockedFunction<
-  typeof useNotification
->;
-const mockUseSubscribeConsultationSaved =
-  useSubscribeConsultationSaved as jest.MockedFunction<
-    typeof useSubscribeConsultationSaved
-  >;
+const mockUseTranslation = jest.mocked(useTranslation);
+const mockGetFormattedError = jest.mocked(getFormattedError);
+const mockGetCategoryUuidFromOrderTypes = jest.mocked(
+  getCategoryUuidFromOrderTypes,
+);
+const mockGetServiceRequests = jest.mocked(getServiceRequests);
+const mockFilterServiceRequestReplacementEntries = jest.mocked(
+  filterServiceRequestReplacementEntries,
+);
+const mockGetServiceRequestPriority = jest.mocked(getServiceRequestPriority);
+const mockMapServiceRequest = jest.mocked(mapServiceRequest);
+const mockUsePatientUUID = jest.mocked(usePatientUUID);
+const mockUseNotification = jest.mocked(useNotification);
+const mockUseSubscribeConsultationSaved = jest.mocked(
+  useSubscribeConsultationSaved,
+);
+const mockShouldEnableEncounterFilter = jest.mocked(
+  shouldEnableEncounterFilter,
+);
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -105,76 +84,11 @@ const createWrapper = () => {
   );
 };
 
-const mockOrderTypes = {
-  results: [
-    {
-      uuid: 'lab-uuid',
-      display: 'Lab Order',
-      conceptClasses: [
-        {
-          uuid: 'concept-class-1',
-          name: 'Test',
-        },
-      ],
-    },
-    {
-      uuid: 'radiology-uuid',
-      display: 'Radiology Order',
-      conceptClasses: [
-        {
-          uuid: 'concept-class-2',
-          name: 'Radiology',
-        },
-      ],
-    },
-  ],
-};
-
-const mockServiceRequestBundle: Bundle<ServiceRequest> = {
+const mockServiceRequestBundle = {
   resourceType: 'Bundle',
   type: 'searchset',
-  entry: [
-    {
-      resource: {
-        resourceType: 'ServiceRequest',
-        id: 'service-1',
-        status: 'active',
-        intent: 'order',
-        code: { text: 'Blood Test' },
-        priority: 'stat',
-        subject: { reference: 'Patient/patient-123' },
-        requester: { display: 'Dr. Smith' },
-        occurrencePeriod: { start: '2023-12-01T10:30:00.000Z' },
-      },
-    },
-    {
-      resource: {
-        resourceType: 'ServiceRequest',
-        id: 'service-2',
-        status: 'active',
-        intent: 'order',
-        code: { text: 'Urine Test' },
-        priority: 'routine',
-        subject: { reference: 'Patient/patient-123' },
-        requester: { display: 'Dr. Johnson' },
-        occurrencePeriod: { start: '2023-12-01T14:15:00.000Z' },
-      },
-    },
-    {
-      resource: {
-        resourceType: 'ServiceRequest',
-        id: 'service-3',
-        status: 'active',
-        intent: 'order',
-        code: { text: 'Liver Function Test' },
-        priority: 'stat',
-        subject: { reference: 'Patient/patient-123' },
-        requester: { display: 'Dr. Brown' },
-        occurrencePeriod: { start: '2023-11-30T09:00:00.000Z' },
-      },
-    },
-  ],
-};
+  entry: [],
+} as Bundle<ServiceRequest>;
 
 const mockServiceRequests: ServiceRequestViewModel[] = [
   {
@@ -222,6 +136,7 @@ describe('GenericServiceRequestTable', () => {
           IN_PROGRESS_STATUS: 'In Progress',
           COMPLETED_STATUS: 'Completed',
           REVOKED_STATUS: 'Revoked',
+          UNKNOWN_STATUS: 'Unknown',
         };
         return translations[key] || key;
       },
@@ -237,7 +152,6 @@ describe('GenericServiceRequestTable', () => {
       clearAllNotifications: jest.fn(),
     });
 
-    mockFormatDate.mockReturnValue({ formattedResult: '01/12/2023' });
     mockGetFormattedError.mockReturnValue({
       message: 'Network error',
       title: '',
@@ -245,12 +159,17 @@ describe('GenericServiceRequestTable', () => {
     mockFilterServiceRequestReplacementEntries.mockImplementation(
       (data) => data,
     );
-    mockSortServiceRequestsByPriority.mockImplementation((data) => data);
-    mockGroupByDate.mockReturnValue([]);
+    // getServiceRequestPriority returns 0 for 'stat', 1 for 'routine' by default
+    mockGetServiceRequestPriority.mockImplementation((priority: string) => {
+      const PRIORITY_ORDER = ['stat', 'routine'];
+      const idx = PRIORITY_ORDER.indexOf(priority?.toLowerCase());
+      return idx === -1 ? PRIORITY_ORDER.length : idx;
+    });
     mockGetCategoryUuidFromOrderTypes.mockResolvedValue('lab-uuid');
     mockGetServiceRequests.mockResolvedValue(mockServiceRequestBundle);
     mockMapServiceRequest.mockReturnValue(mockServiceRequests);
     mockUseSubscribeConsultationSaved.mockImplementation(() => {});
+    mockShouldEnableEncounterFilter.mockReturnValue(false);
   });
 
   describe('Loading state', () => {
@@ -370,7 +289,11 @@ describe('GenericServiceRequestTable', () => {
       });
     });
 
-    it('renders empty state when orderType not found in order types', async () => {
+    it('renders error state when orderType not found in order types', async () => {
+      mockGetCategoryUuidFromOrderTypes.mockRejectedValue(
+        new Error('Order type not found'),
+      );
+
       render(
         <GenericServiceRequestTable
           config={{ orderType: 'Unknown OrderType' }}
@@ -382,49 +305,14 @@ describe('GenericServiceRequestTable', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('No service requests recorded'),
+          screen.getByTestId('generic-service-request-table-error'),
         ).toBeInTheDocument();
       });
     });
   });
 
   describe('Data processing pipeline', () => {
-    beforeEach(() => {
-      mockGroupByDate.mockImplementation((items, dateExtractor) => {
-        const groups: { [key: string]: typeof items } = {};
-
-        items.forEach((item: any) => {
-          const date = dateExtractor(item);
-          if (!groups[date]) {
-            groups[date] = [];
-          }
-          groups[date].push(item);
-        });
-
-        return Object.entries(groups).map(([date, groupedItems]) => ({
-          date,
-          items: groupedItems,
-        }));
-      });
-
-      mockFormatDate.mockImplementation((dateStr, t, format) => {
-        if (format === ISO_DATE_FORMAT) {
-          if (dateStr === '2023-12-01T10:30:00.000Z') {
-            return { formattedResult: '2023-12-01' };
-          }
-          if (dateStr === '2023-12-01T14:15:00.000Z') {
-            return { formattedResult: '2023-12-01' };
-          }
-          if (dateStr === '2023-11-30T09:00:00.000Z') {
-            return { formattedResult: '2023-11-30' };
-          }
-        }
-        // For display formatting - return display format
-        return { formattedResult: '01/12/2023' };
-      });
-    });
-
-    it('filters replacement entries before grouping', async () => {
+    it('filters replacement entries before sorting', async () => {
       const filteredRequests = [mockServiceRequests[0], mockServiceRequests[2]];
       mockFilterServiceRequestReplacementEntries.mockReturnValue(
         filteredRequests,
@@ -441,14 +329,10 @@ describe('GenericServiceRequestTable', () => {
         expect(mockFilterServiceRequestReplacementEntries).toHaveBeenCalledWith(
           mockServiceRequests,
         );
-        expect(mockGroupByDate).toHaveBeenCalledWith(
-          filteredRequests,
-          expect.any(Function),
-        );
       });
     });
 
-    it('processes data through transformation pipeline', async () => {
+    it('processes data through the transformation pipeline', async () => {
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
@@ -460,15 +344,15 @@ describe('GenericServiceRequestTable', () => {
         expect(mockMapServiceRequest).toHaveBeenCalledWith(
           mockServiceRequestBundle,
         );
-        expect(mockGroupByDate).toHaveBeenCalledWith(
+        expect(mockFilterServiceRequestReplacementEntries).toHaveBeenCalledWith(
           mockServiceRequests,
-          expect.any(Function),
         );
-        expect(mockSortServiceRequestsByPriority).toHaveBeenCalled();
       });
     });
+  });
 
-    it('groups service requests by date', async () => {
+  describe('Flat list rendering', () => {
+    it('renders a single SortableDataTable with all service requests', async () => {
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
@@ -477,27 +361,107 @@ describe('GenericServiceRequestTable', () => {
       );
 
       await waitFor(() => {
-        expect(mockGroupByDate).toHaveBeenCalledWith(
-          mockServiceRequests,
-          expect.any(Function),
-        );
-
-        expect(mockFormatDate).toHaveBeenCalledWith(
-          mockServiceRequests[0].orderedDate,
-          expect.any(Function),
-          ISO_DATE_FORMAT,
-        );
+        expect(screen.getByText('Blood Test')).toBeInTheDocument();
+        expect(screen.getByText('Urine Test')).toBeInTheDocument();
+        expect(screen.getByText('Liver Function Test')).toBeInTheDocument();
       });
     });
 
-    it('sorts date groups in descending order (latest first)', async () => {
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-11-30', items: [mockServiceRequests[2]] },
+    it('does not render any accordion elements', async () => {
+      render(
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
-          date: '2023-12-01',
-          items: [mockServiceRequests[0], mockServiceRequests[1]],
+          wrapper: createWrapper(),
         },
-      ]);
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Blood Test')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.queryByTestId('accordian-table-title'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders service requests in a single table sorted by date descending', async () => {
+      // After sorting by orderedDate descending:
+      // [1] Urine Test (14:15 on 2023-12-01) -> first
+      // [0] Blood Test (10:30 on 2023-12-01) -> second
+      // [2] Liver Function Test (2023-11-30) -> third
+      render(
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row');
+        // rows[0] is the header row; data rows follow
+        const rowTexts = rows.map((r) => r.textContent);
+        const urineIdx = rowTexts.findIndex((t) => t?.includes('Urine Test'));
+        const bloodIdx = rowTexts.findIndex((t) => t?.includes('Blood Test'));
+        const liverIdx = rowTexts.findIndex((t) =>
+          t?.includes('Liver Function Test'),
+        );
+        // Urine Test (latest orderedDate on 2023-12-01 at 14:15) should appear before Blood Test (10:30)
+        expect(urineIdx).toBeGreaterThan(0);
+        expect(bloodIdx).toBeGreaterThan(0);
+        expect(liverIdx).toBeGreaterThan(0);
+        expect(urineIdx).toBeLessThan(bloodIdx);
+        expect(bloodIdx).toBeLessThan(liverIdx);
+      });
+    });
+  });
+
+  describe('Date-descending sort', () => {
+    it('places newer orderedDate items before older ones across all dates', async () => {
+      render(
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row');
+        const rowTexts = rows.map((r) => r.textContent);
+        const liverIdx = rowTexts.findIndex((t) =>
+          t?.includes('Liver Function Test'),
+        );
+        const bloodIdx = rowTexts.findIndex((t) => t?.includes('Blood Test'));
+        // 2023-11-30 items must appear after 2023-12-01 items
+        expect(liverIdx).toBeGreaterThan(bloodIdx);
+      });
+    });
+
+    it('uses priority as tiebreaker when orderedDates are equal (stat before routine)', async () => {
+      // Blood Test: stat, 2023-12-01T10:30 -> priority index 0
+      // Urine Test: routine, 2023-12-01T14:15 -> priority index 1
+      // Urine has a later orderedDate so it comes first regardless of priority
+      // For true same-date-time tiebreaker test, use requests with identical orderedDate
+      const sameTimeStat: ServiceRequestViewModel = {
+        id: 'same-1',
+        testName: 'Same Time Stat',
+        priority: 'stat',
+        orderedBy: 'Dr. A',
+        orderedDate: '2023-12-01T10:00:00.000Z',
+        status: 'active',
+      };
+      const sameTimeRoutine: ServiceRequestViewModel = {
+        id: 'same-2',
+        testName: 'Same Time Routine',
+        priority: 'routine',
+        orderedBy: 'Dr. B',
+        orderedDate: '2023-12-01T10:00:00.000Z',
+        status: 'active',
+      };
+
+      mockMapServiceRequest.mockReturnValue([sameTimeRoutine, sameTimeStat]);
+      mockFilterServiceRequestReplacementEntries.mockImplementation(
+        (data) => data,
+      );
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -507,25 +471,16 @@ describe('GenericServiceRequestTable', () => {
       );
 
       await waitFor(() => {
-        const accordionItems = screen.getAllByTestId('accordian-table-title');
-        expect(accordionItems).toHaveLength(2);
-      });
-    });
-
-    it('formats dates for accordion titles', async () => {
-      render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        expect(mockFormatDate).toHaveBeenCalledWith(
-          '2023-12-01',
-          mockUseTranslation().t,
-          FULL_MONTH_DATE_FORMAT,
+        const rows = screen.getAllByRole('row');
+        const rowTexts = rows.map((r) => r.textContent);
+        const statIdx = rowTexts.findIndex((t) =>
+          t?.includes('Same Time Stat'),
         );
+        const routineIdx = rowTexts.findIndex((t) =>
+          t?.includes('Same Time Routine'),
+        );
+        // stat should come before routine when orderedDates are equal
+        expect(statIdx).toBeLessThan(routineIdx);
       });
     });
   });
@@ -570,50 +525,6 @@ describe('GenericServiceRequestTable', () => {
     });
   });
 
-  describe('Accordion rendering', () => {
-    beforeEach(() => {
-      mockGroupByDate.mockReturnValue([
-        {
-          date: '2023-12-01',
-          items: [mockServiceRequests[0], mockServiceRequests[1]],
-        },
-        { date: '2023-11-30', items: [mockServiceRequests[2]] },
-      ]);
-    });
-
-    it('renders accordion with grouped data', async () => {
-      render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(2);
-        // Each accordion item has a unique table with date suffix
-        const tables = document.querySelectorAll(
-          '[data-testid^="generic-service-request-table-"]',
-        );
-        expect(tables).toHaveLength(2);
-      });
-    });
-
-    it('opens first accordion item by default', async () => {
-      render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        const accordionButton = screen.getAllByRole('button')[0];
-        expect(accordionButton).toHaveAttribute('aria-expanded', 'true');
-      });
-    });
-  });
-
   describe('renderCell function', () => {
     const testServiceRequest: ServiceRequestViewModel = {
       id: 'test-1',
@@ -625,9 +536,10 @@ describe('GenericServiceRequestTable', () => {
     };
 
     beforeEach(() => {
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [testServiceRequest] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([testServiceRequest]);
+      mockFilterServiceRequestReplacementEntries.mockImplementation(
+        (data) => data,
+      );
     });
 
     it('renders testName cell with service request name', async () => {
@@ -662,9 +574,7 @@ describe('GenericServiceRequestTable', () => {
         priority: 'routine',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [routineServiceRequest] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([routineServiceRequest]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -685,9 +595,7 @@ describe('GenericServiceRequestTable', () => {
         priority: '',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [emptyPriorityServiceRequest] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([emptyPriorityServiceRequest]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -707,9 +615,7 @@ describe('GenericServiceRequestTable', () => {
         note: 'This is a test note for the service request',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [serviceRequestWithNote] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([serviceRequestWithNote]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -764,9 +670,7 @@ describe('GenericServiceRequestTable', () => {
         orderedBy: '',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [noOrderedByServiceRequest] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([noOrderedByServiceRequest]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -799,9 +703,7 @@ describe('GenericServiceRequestTable', () => {
         status: 'completed',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [completedServiceRequest] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([completedServiceRequest]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -821,9 +723,7 @@ describe('GenericServiceRequestTable', () => {
         status: 'revoked',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [revokedServiceRequest] },
-      ]);
+      mockMapServiceRequest.mockReturnValue([revokedServiceRequest]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -843,30 +743,7 @@ describe('GenericServiceRequestTable', () => {
         status: 'unknown',
       };
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [unknownServiceRequest] },
-      ]);
-
-      mockUseTranslation.mockReturnValue({
-        t: (key: string) => {
-          const translations: Record<string, string> = {
-            SERVICE_REQUEST_TEST_NAME: 'Test Name',
-            SERVICE_REQUEST_ORDERED_BY: 'Ordered By',
-            SERVICE_REQUEST_ORDERED_STATUS: 'Status',
-            SERVICE_REQUEST_HEADING: 'Service Requests',
-            NO_SERVICE_REQUESTS: 'No service requests recorded',
-            SERVICE_REQUEST_PRIORITY_URGENT: 'Urgent',
-            ERROR_DEFAULT_TITLE: 'Error',
-            IN_PROGRESS_STATUS: 'In Progress',
-            COMPLETED_STATUS: 'Completed',
-            REVOKED_STATUS: 'Revoked',
-            UNKNOWN_STATUS: 'Unknown',
-          };
-          return translations[key] || key;
-        },
-        i18n: {} as any,
-        ready: true,
-      } as any);
+      mockMapServiceRequest.mockReturnValue([unknownServiceRequest]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -882,12 +759,9 @@ describe('GenericServiceRequestTable', () => {
   });
 
   describe('Edge cases', () => {
-    it('handles single date group', async () => {
-      const singleDateServiceRequests = [mockServiceRequests[0]];
-      mockMapServiceRequest.mockReturnValue(singleDateServiceRequests);
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: singleDateServiceRequests },
-      ]);
+    it('handles single service request', async () => {
+      const singleRequest = [mockServiceRequests[0]];
+      mockMapServiceRequest.mockReturnValue(singleRequest);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -897,7 +771,7 @@ describe('GenericServiceRequestTable', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(1);
+        expect(screen.getByText('Blood Test')).toBeInTheDocument();
       });
     });
 
@@ -930,9 +804,6 @@ describe('GenericServiceRequestTable', () => {
       ];
 
       mockMapServiceRequest.mockReturnValue(mixedPriorityServiceRequests);
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: mixedPriorityServiceRequests },
-      ]);
 
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
@@ -979,15 +850,8 @@ describe('GenericServiceRequestTable', () => {
     });
   });
 
-  describe('Data sorting', () => {
-    it('sorts service requests by priority within each date group', async () => {
-      mockGroupByDate.mockReturnValue([
-        {
-          date: '2023-12-01',
-          items: [mockServiceRequests[0], mockServiceRequests[1]],
-        },
-      ]);
-
+  describe('Table headers', () => {
+    it('displays correct table headers', async () => {
       render(
         <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
@@ -996,46 +860,45 @@ describe('GenericServiceRequestTable', () => {
       );
 
       await waitFor(() => {
-        expect(mockSortServiceRequestsByPriority).toHaveBeenCalledWith([
-          mockServiceRequests[0],
-          mockServiceRequests[1],
-        ]);
+        expect(screen.getByText('Test Name')).toBeInTheDocument();
+        expect(screen.getByText('Ordered By')).toBeInTheDocument();
       });
     });
   });
 
-  describe('Accessibility', () => {
+  describe('emptyEncounterFilter logic', () => {
     beforeEach(() => {
-      mockGroupByDate.mockReturnValue([
-        {
-          date: '2023-12-01',
-          items: [mockServiceRequests[0], mockServiceRequests[1]],
-        },
-        { date: '2023-11-30', items: [mockServiceRequests[2]] },
-      ]);
+      mockMapServiceRequest.mockReturnValue(mockServiceRequests);
     });
 
-    it('has no accessibility violations with data', async () => {
-      const { container } = render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
+    it('shows data table when emptyEncounterFilter is false', async () => {
+      mockShouldEnableEncounterFilter.mockReturnValue(false);
+
+      render(
+        <GenericServiceRequestTable
+          config={{ orderType: 'Lab Order' }}
+          episodeOfCareUuids={[]}
+          encounterUuids={undefined}
+        />,
         {
           wrapper: createWrapper(),
         },
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(2);
+        expect(screen.getByText('Blood Test')).toBeInTheDocument();
       });
-
-      expect(await axe(container)).toHaveNoViolations();
     });
 
-    it('has no accessibility violations in empty state', async () => {
-      mockMapServiceRequest.mockReturnValue([]);
-      mockGroupByDate.mockReturnValue([]);
+    it('shows empty state when emptyEncounterFilter is true', async () => {
+      mockShouldEnableEncounterFilter.mockReturnValue(true);
 
-      const { container } = render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
+      render(
+        <GenericServiceRequestTable
+          config={{ orderType: 'Lab Order' }}
+          episodeOfCareUuids={['episode-1']}
+          encounterUuids={[]}
+        />,
         {
           wrapper: createWrapper(),
         },
@@ -1045,22 +908,6 @@ describe('GenericServiceRequestTable', () => {
         expect(
           screen.getByText('No service requests recorded'),
         ).toBeInTheDocument();
-      });
-
-      expect(await axe(container)).toHaveNoViolations();
-    });
-
-    it('has proper ARIA labels', async () => {
-      render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        const tables = screen.getAllByLabelText('Service Requests');
-        expect(tables.length).toBeGreaterThan(0);
       });
     });
   });
@@ -1124,272 +971,8 @@ describe('GenericServiceRequestTable', () => {
     });
   });
 
-  describe('Table headers', () => {
-    beforeEach(() => {
-      mockGroupByDate.mockReturnValue([
-        {
-          date: '2023-12-01',
-          items: [mockServiceRequests[0]],
-        },
-      ]);
-    });
-
-    it('displays correct table headers', async () => {
-      render(
-        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText('Test Name')).toBeInTheDocument();
-        expect(screen.getByText('Ordered By')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('emptyEncounterFilter logic', () => {
-    beforeEach(() => {
-      mockMapServiceRequest.mockReturnValue(mockServiceRequests);
-      mockGroupByDate.mockReturnValue([
-        {
-          date: '2023-12-01',
-          items: [mockServiceRequests[0]],
-        },
-      ]);
-    });
-
-    describe('when episodeOfCareUuids is empty array', () => {
-      it('should show data table regardless of encounterUuids (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={[]}
-            encounterUuids={undefined}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-
-      it('should show data table when both arrays are empty (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={[]}
-            encounterUuids={[]}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-
-      it('should show data table when episodeOfCareUuids empty and encounterUuids has items', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={[]}
-            encounterUuids={['encounter-1']}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-    });
-
-    describe('when episodeOfCareUuids is undefined or null', () => {
-      it('should show empty state when encounterUuids is empty array (emptyEncounterFilter = true)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={undefined}
-            encounterUuids={[]}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(
-            screen.getByText('No service requests recorded'),
-          ).toBeInTheDocument();
-          expect(
-            screen.queryByTestId('accordian-table-title'),
-          ).not.toBeInTheDocument();
-        });
-      });
-
-      it('should show data table when encounterUuids is undefined (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={undefined}
-            encounterUuids={undefined}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-
-      it('should show data table when encounterUuids has items (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={undefined}
-            encounterUuids={['encounter-1']}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-    });
-
-    describe('when episodeOfCareUuids has items', () => {
-      it('should show empty state when encounterUuids is empty array (emptyEncounterFilter = true)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={['episode-1']}
-            encounterUuids={[]}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(
-            screen.getByText('No service requests recorded'),
-          ).toBeInTheDocument();
-          expect(
-            screen.queryByTestId('accordian-table-title'),
-          ).not.toBeInTheDocument();
-        });
-      });
-
-      it('should show data table when encounterUuids is undefined (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={['episode-1']}
-            encounterUuids={undefined}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-
-      it('should show data table when encounterUuids has items (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={['episode-1']}
-            encounterUuids={['encounter-1']}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-    });
-
-    describe('edge cases for emptyEncounterFilter', () => {
-      it('should handle undefined episodeOfCareUuids with empty encounterUuids (emptyEncounterFilter = true)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={undefined}
-            encounterUuids={[]}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(
-            screen.getByText('No service requests recorded'),
-          ).toBeInTheDocument();
-        });
-      });
-
-      it('should handle undefined values for both props (emptyEncounterFilter = false)', async () => {
-        render(
-          <GenericServiceRequestTable
-            config={{ orderType: 'Lab Order' }}
-            episodeOfCareUuids={undefined}
-            encounterUuids={undefined}
-          />,
-          {
-            wrapper: createWrapper(),
-          },
-        );
-
-        await waitFor(() => {
-          expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(
-            1,
-          );
-        });
-      });
-    });
-  });
-
   describe('consultation saved event subscription', () => {
     it('registers consultation saved event listener', async () => {
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [mockServiceRequests[0]] },
-      ]);
-
       render(
         <GenericServiceRequestTable
           config={{ orderType: 'Procedure Order' }}
@@ -1404,179 +987,137 @@ describe('GenericServiceRequestTable', () => {
       });
     });
 
-    it('refetches data when consultation saved event is triggered with matching category', async () => {
-      let eventCallback: (payload: any) => void = () => {};
-      mockUseSubscribeConsultationSaved.mockImplementation((callback) => {
-        eventCallback = callback;
+    describe('event-driven refetch behavior', () => {
+      let eventCallback: (payload: any) => void;
+
+      beforeEach(async () => {
+        eventCallback = () => {};
+        mockUseSubscribeConsultationSaved.mockImplementation((callback) => {
+          eventCallback = callback;
+        });
+
+        render(
+          <GenericServiceRequestTable
+            config={{ orderType: 'Procedure Order' }}
+          />,
+          { wrapper: createWrapper() },
+        );
+
+        await screen.findByText('Blood Test');
+
+        mockGetServiceRequests.mockClear();
       });
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [mockServiceRequests[0]] },
-      ]);
+      it('refetches data when consultation saved event is triggered with matching category', async () => {
+        eventCallback({
+          patientUUID: 'patient-123',
+          updatedResources: {
+            conditions: false,
+            allergies: false,
+            medications: false,
+            serviceRequests: { 'procedure order': true },
+          },
+        });
 
-      render(
-        <GenericServiceRequestTable
-          config={{ orderType: 'Procedure Order' }}
-        />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(1);
+        await waitFor(() => {
+          expect(mockGetServiceRequests).toHaveBeenCalled();
+        });
       });
 
-      // Clear the mock to track new calls
-      mockGetServiceRequests.mockClear();
+      it('does not refetch when event is for different patient', async () => {
+        eventCallback({
+          patientUUID: 'different-patient',
+          updatedResources: {
+            conditions: false,
+            allergies: false,
+            medications: false,
+            serviceRequests: { 'procedure order': true },
+          },
+        });
 
-      // Trigger the event with matching category
-      eventCallback({
-        patientUUID: 'patient-123',
-        updatedResources: {
-          conditions: false,
-          allergies: false,
-          medications: false,
-          serviceRequests: { 'procedure order': true },
-        },
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(mockGetServiceRequests).not.toHaveBeenCalled();
       });
 
-      // Verify refetch was triggered
-      await waitFor(() => {
-        expect(mockGetServiceRequests).toHaveBeenCalled();
+      it('does not refetch when different category was updated', async () => {
+        eventCallback({
+          patientUUID: 'patient-123',
+          updatedResources: {
+            conditions: false,
+            allergies: false,
+            medications: false,
+            serviceRequests: { 'lab order': true },
+          },
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(mockGetServiceRequests).not.toHaveBeenCalled();
+      });
+
+      it('does not refetch when serviceRequests is empty', async () => {
+        eventCallback({
+          patientUUID: 'patient-123',
+          updatedResources: {
+            conditions: true,
+            allergies: false,
+            medications: false,
+            serviceRequests: {},
+          },
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(mockGetServiceRequests).not.toHaveBeenCalled();
       });
     });
+  });
 
-    it('does not refetch when event is for different patient', async () => {
-      let eventCallback: (payload: any) => void = () => {};
-      mockUseSubscribeConsultationSaved.mockImplementation((callback) => {
-        eventCallback = callback;
-      });
-
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [mockServiceRequests[0]] },
-      ]);
-
-      render(
-        <GenericServiceRequestTable
-          config={{ orderType: 'Procedure Order' }}
-        />,
+  describe('Accessibility', () => {
+    it('has no accessibility violations with data', async () => {
+      const { container } = render(
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
           wrapper: createWrapper(),
         },
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(1);
+        expect(screen.getByText('Blood Test')).toBeInTheDocument();
       });
 
-      // Clear the mock to track new calls
-      mockGetServiceRequests.mockClear();
-
-      // Trigger event for different patient
-      eventCallback({
-        patientUUID: 'different-patient',
-        updatedResources: {
-          conditions: false,
-          allergies: false,
-          medications: false,
-          serviceRequests: { 'procedure order': true },
-        },
-      });
-
-      // Give some time to ensure no refetch happens
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Verify refetch was NOT triggered
-      expect(mockGetServiceRequests).not.toHaveBeenCalled();
+      expect(await axe(container)).toHaveNoViolations();
     });
 
-    it('does not refetch when different category was updated', async () => {
-      let eventCallback: (payload: any) => void = () => {};
-      mockUseSubscribeConsultationSaved.mockImplementation((callback) => {
-        eventCallback = callback;
-      });
+    it('has no accessibility violations in empty state', async () => {
+      mockMapServiceRequest.mockReturnValue([]);
 
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [mockServiceRequests[0]] },
-      ]);
-
-      render(
-        <GenericServiceRequestTable
-          config={{ orderType: 'Procedure Order' }}
-        />,
+      const { container } = render(
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
           wrapper: createWrapper(),
         },
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(1);
+        expect(
+          screen.getByText('No service requests recorded'),
+        ).toBeInTheDocument();
       });
 
-      // Clear the mock to track new calls
-      mockGetServiceRequests.mockClear();
-
-      // Trigger event with different category
-      eventCallback({
-        patientUUID: 'patient-123',
-        updatedResources: {
-          conditions: false,
-          allergies: false,
-          medications: false,
-          serviceRequests: { 'lab order': true },
-        },
-      });
-
-      // Give some time to ensure no refetch happens
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Verify refetch was NOT triggered
-      expect(mockGetServiceRequests).not.toHaveBeenCalled();
+      expect(await axe(container)).toHaveNoViolations();
     });
 
-    it('does not refetch when serviceRequests is empty', async () => {
-      let eventCallback: (payload: any) => void = () => {};
-      mockUseSubscribeConsultationSaved.mockImplementation((callback) => {
-        eventCallback = callback;
-      });
-
-      mockGroupByDate.mockReturnValue([
-        { date: '2023-12-01', items: [mockServiceRequests[0]] },
-      ]);
-
+    it('has proper ARIA labels', async () => {
       render(
-        <GenericServiceRequestTable
-          config={{ orderType: 'Procedure Order' }}
-        />,
+        <GenericServiceRequestTable config={{ orderType: 'Lab Order' }} />,
         {
           wrapper: createWrapper(),
         },
       );
 
       await waitFor(() => {
-        expect(screen.getAllByTestId('accordian-table-title')).toHaveLength(1);
+        const tables = screen.getAllByLabelText('Service Requests');
+        expect(tables.length).toBeGreaterThan(0);
       });
-
-      // Clear the mock to track new calls
-      mockGetServiceRequests.mockClear();
-
-      // Trigger event with empty serviceRequests
-      eventCallback({
-        patientUUID: 'patient-123',
-        updatedResources: {
-          conditions: true,
-          allergies: false,
-          medications: false,
-          serviceRequests: {},
-        },
-      });
-
-      // Give some time to ensure no refetch happens
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Verify refetch was NOT triggered
-      expect(mockGetServiceRequests).not.toHaveBeenCalled();
     });
   });
 });

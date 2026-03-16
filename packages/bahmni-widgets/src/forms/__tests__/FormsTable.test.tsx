@@ -32,7 +32,7 @@ jest.mock('@bahmni/services', () => ({
   getObservationsBundleByEncounterUuid: jest.fn(),
   useSubscribeConsultationSaved: jest.fn(),
   formatDate: jest.fn((date) => ({
-    formattedResult: new Date(date).toLocaleDateString(),
+    formattedResult: new Date(date).toLocaleDateString('en-US'),
   })),
   getUserPreferredLocale: jest.fn(() => 'en'),
   getFormattedError: jest.fn((error) => ({ message: error.message })),

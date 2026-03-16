@@ -1,8 +1,4 @@
-import {
-  Accordion,
-  AccordionItem,
-  CodeSnippetSkeleton,
-} from '@bahmni/design-system';
+import { CodeSnippetSkeleton } from '@bahmni/design-system';
 import {
   shouldEnableEncounterFilter,
   useTranslation,
@@ -12,6 +8,7 @@ import {
   getDiagnosticReports,
   useSubscribeConsultationSaved,
 } from '@bahmni/services';
+import { Pagination } from '@carbon/react';
 import { useQuery } from '@tanstack/react-query';
 import type { DiagnosticReport } from 'fhir/r4';
 import React, { useMemo, useEffect, useState } from 'react';
@@ -24,14 +21,14 @@ import {
   updateInvestigationsWithReportInfo,
 } from '../utils/Investigations';
 import LabInvestigationItem from './LabInvestigationItem';
-import { FormattedLabInvestigations, LabInvestigationsByDate } from './models';
+import { FormattedLabInvestigations } from './models';
 import styles from './styles/LabInvestigation.module.scss';
 import {
   filterLabInvestigationEntries,
   formatLabInvestigations,
-  groupLabInvestigationsByDate,
-  sortLabInvestigationsByPriority,
 } from './utils';
+
+const LAB_PAGE_SIZE = 10;
 
 const fetchLabInvestigations = async (
   patientUUID: string,
@@ -60,11 +57,7 @@ const LabInvestigation: React.FC<WidgetProps> = ({
   const { addNotification } = useNotification();
   const categoryName = config?.orderType as string;
   const numberOfVisits = config?.numberOfVisits as number;
-  const [openAccordionIndices, setOpenAccordionIndices] = useState<Set<number>>(
-    new Set([0]),
-  );
-  const [currentOpenedAccordionIndex, setCurrentOpenedAccordionIndex] =
-    useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const emptyEncounterFilter = shouldEnableEncounterFilter(
     episodeOfCareUuids,
@@ -153,28 +146,27 @@ const LabInvestigation: React.FC<WidgetProps> = ({
   const isLoading = isLoadingOrderTypes || isLoadingLabInvestigations;
   const hasError = isOrderTypesError || isLabInvestigationsError;
 
-  const sortedLabInvestigations = useMemo<LabInvestigationsByDate[]>(() => {
-    const groupedTests = groupLabInvestigationsByDate(labTests);
-    return sortLabInvestigationsByPriority(groupedTests);
+  // Flat list sorted by orderedDate descending, Urgent tests first for same date
+  const sortedLabTests = useMemo<FormattedLabInvestigations[]>(() => {
+    return [...labTests].sort((a, b) => {
+      const dateDiff =
+        new Date(b.orderedDate).getTime() - new Date(a.orderedDate).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      if (a.priority === 'Urgent' && b.priority !== 'Urgent') return -1;
+      if (a.priority !== 'Urgent' && b.priority === 'Urgent') return 1;
+      return 0;
+    });
   }, [labTests]);
 
-  // Fetch diagnostic reports only for the most recently opened accordion
-  const currentAccordionGroup =
-    sortedLabInvestigations[currentOpenedAccordionIndex];
-  const testIds = currentAccordionGroup?.tests.map((test) => test.id) ?? [];
+  const testIds = useMemo(
+    () => sortedLabTests.map((test) => test.id),
+    [sortedLabTests],
+  );
 
   const { data: diagnosticReportsBundle } = useQuery({
-    queryKey: [
-      'diagnosticReports',
-      patientUUID,
-      currentOpenedAccordionIndex,
-      testIds,
-    ],
+    queryKey: ['diagnosticReports', patientUUID, testIds],
     queryFn: () => getDiagnosticReports(patientUUID!, testIds),
-    enabled:
-      !!patientUUID &&
-      openAccordionIndices.has(currentOpenedAccordionIndex) &&
-      testIds.length > 0,
+    enabled: !!patientUUID && testIds.length > 0,
   });
 
   const diagnosticReports = useMemo<DiagnosticReport[]>(() => {
@@ -182,12 +174,12 @@ const LabInvestigation: React.FC<WidgetProps> = ({
     return extractDiagnosticReportsFromBundle(diagnosticReportsBundle);
   }, [diagnosticReportsBundle]);
 
-  const updatedLabInvestigations = useMemo<LabInvestigationsByDate[]>(() => {
-    return sortedLabInvestigations.map((group) => ({
-      ...group,
-      tests: updateInvestigationsWithReportInfo(group.tests, diagnosticReports),
-    }));
-  }, [sortedLabInvestigations, diagnosticReports]);
+  const updatedLabTests = useMemo(() => {
+    return updateInvestigationsWithReportInfo(
+      sortedLabTests,
+      diagnosticReports,
+    ) as FormattedLabInvestigations[];
+  }, [sortedLabTests, diagnosticReports]);
 
   if (hasError) {
     return (
@@ -215,39 +207,34 @@ const LabInvestigation: React.FC<WidgetProps> = ({
     );
   }
 
+  const totalTests = updatedLabTests.length;
+  const paginatedTests = updatedLabTests.slice(
+    (currentPage - 1) * LAB_PAGE_SIZE,
+    currentPage * LAB_PAGE_SIZE,
+  );
+
   return (
-    <Accordion align="start">
-      {updatedLabInvestigations.map((group: LabInvestigationsByDate, index) => (
-        <AccordionItem
-          key={group.date}
-          className={styles.accordionItem}
-          open={openAccordionIndices.has(index)}
-          onHeadingClick={() => {
-            setOpenAccordionIndices((prev) => {
-              const newSet = new Set(prev);
-              if (newSet.has(index)) {
-                newSet.delete(index);
-              } else {
-                newSet.add(index);
-                setCurrentOpenedAccordionIndex(index);
-              }
-              return newSet;
-            });
-          }}
-          title={group.date}
-        >
-          {group.tests?.map((test) => (
-            <LabInvestigationItem
-              key={`${group.date}-${test.testName}-${test.id || test.testName}`}
-              test={test}
-              isOpen={openAccordionIndices.has(index)}
-              hasProcessedReport={!!test.reportId}
-              reportId={test.reportId}
-            />
-          ))}
-        </AccordionItem>
+    <div>
+      {paginatedTests.map((test) => (
+        <LabInvestigationItem
+          key={`${test.orderedDate}-${test.testName}-${test.id || test.testName}`}
+          test={test}
+          isOpen
+          hasProcessedReport={!!test.reportId}
+          reportId={test.reportId}
+        />
       ))}
-    </Accordion>
+      {totalTests > LAB_PAGE_SIZE && (
+        <Pagination
+          page={currentPage}
+          pageSize={LAB_PAGE_SIZE}
+          pageSizes={[LAB_PAGE_SIZE]}
+          totalItems={totalTests}
+          onChange={({ page }: { page: number }) => setCurrentPage(page)}
+          data-testid="lab-pagination"
+        />
+      )}
+    </div>
   );
 };
 

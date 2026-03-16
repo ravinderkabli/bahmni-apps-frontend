@@ -94,10 +94,12 @@ describe('usePatientDetails', () => {
       { wrapper: createWrapper() },
     );
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.metadata.patientUuid).toBe('patient-123');
+    });
 
     expect(mockGetPatientProfile).toHaveBeenCalledWith('patient-123');
-    expect(result.current.metadata.patientUuid).toBe('patient-123');
     expect(result.current.metadata.patientIdentifier).toBe('ID123');
   });
 
