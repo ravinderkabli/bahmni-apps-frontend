@@ -1,1 +1,17 @@
-{}
+{
+  "ADMIN_ALL_SERVICES_COLUMN_ACTIONS": "Acciones",
+  "ADMIN_ALL_SERVICES_COLUMN_DESCRIPTION": "Descripción",
+  "ADMIN_ALL_SERVICES_COLUMN_DURATION_MINS": "Duración (mins)",
+  "ADMIN_ALL_SERVICES_COLUMN_LOCATION": "Ubicación",
+  "ADMIN_ALL_SERVICES_COLUMN_NAME": "Nombre del servicio",
+  "ADMIN_ALL_SERVICES_COLUMN_SPECIALITY": "Especialidad",
+  "ADMIN_ALL_SERVICES_EMPTY_MESSAGE": "No se encontraron servicios.",
+  "ADMIN_ALL_SERVICES_ERROR_MESSAGE": "Error al cargar los servicios. Por favor, inténtelo de nuevo.",
+  "ADMIN_ALL_SERVICES_TITLE": "Servicios",
+  "BREADCRUMB_ADMIN": "Admin",
+  "BREADCRUMB_HOME": "Inicio",
+  "CONFIG_ERROR_SCHEMA_VALIDATION_FAILED": "La configuración no coincide con el esquema requerido",
+  "CONFIG_ERROR_VALIDATION_FAILED": "Error de validación de configuración",
+  "ERROR_CONFIG_GENERIC_MESSAGE": "No se puede cargar {{config}}. Por favor, intente actualizar la página.",
+  "ERROR_CONFIG_TITLE": "Error de {{config}}"
+}

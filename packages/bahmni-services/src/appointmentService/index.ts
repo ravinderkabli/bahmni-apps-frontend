@@ -4,7 +4,9 @@ export {
   getAppointmentById,
   getUpcomingAppointments,
   getPastAppointments,
-} from './appointmmetService';
+  getAllAppointmentServices,
+} from './appointmentService';
+export { type AppointmentService } from './models';
 export {
   APPOINTMENT_STATUSES,
   APPOINTMENT_IDENTIFIER_SYSTEM,

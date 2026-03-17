@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Appointments App Configuration Schema",
+  "description": "Schema for global appointments app configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "serviceTableFields": {
+      "type": "array",
+      "description": "List of fields to display in the service table",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,1 +1,4 @@
-export { SortableDataTable } from './SortableDataTable';
+export {
+  SortableDataTable,
+  type SortableDataTableProps,
+} from './SortableDataTable';

@@ -1,12 +1,14 @@
 import type { Appointment, Bundle } from 'fhir/r4';
 import { get, post } from '../api';
 import {
+  ALL_APPOINTMENT_SERVICES_URL,
   APPOINTMENTS_SEARCH_URL,
   getAppointmentByIdUrl,
   updateAppointmentStatusUrl,
   UPCOMING_APPOINTMENTS_URL,
   PAST_APPOINTMENTS_URL,
 } from './constants';
+import { AppointmentService } from './models';
 
 /**
  * Search for appointments by specified attributes.
@@ -81,3 +83,13 @@ export const updateAppointmentStatus = async (
 export async function getAppointmentById(uuid: string) {
   return await get(getAppointmentByIdUrl(uuid));
 }
+
+/**
+ * Fetches all the appointment service definitions
+ * @returns A list of Appointment Service Definitions
+ */
+export const getAllAppointmentServices = async (): Promise<
+  AppointmentService[]
+> => {
+  return await get<AppointmentService[]>(ALL_APPOINTMENT_SERVICES_URL);
+};

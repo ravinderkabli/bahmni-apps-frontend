@@ -65,14 +65,14 @@ export function createConfigProvider<
           id={`${id}-error`}
           data-testid={`${id}-error-test-id`}
           aria-label={t('ERROR_CONFIG_TITLE', { config: name })}
-          className={styles.emptyState}
+          className={styles.errorState}
         >
           <Column
             sm={4}
             md={8}
             lg={16}
             xlg={16}
-            className={styles.emptyStateTitle}
+            className={styles.errorStateTitle}
           >
             {t('ERROR_CONFIG_TITLE', { config: name })}
           </Column>
@@ -81,7 +81,7 @@ export function createConfigProvider<
             md={8}
             lg={16}
             xlg={16}
-            className={styles.emptyStateBody}
+            className={styles.errorStateBody}
           >
             {t('ERROR_CONFIG_GENERIC_MESSAGE', { config: name })}
           </Column>

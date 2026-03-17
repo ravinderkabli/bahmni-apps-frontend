@@ -1,0 +1,60 @@
+import { AppointmentService } from '@bahmni/services';
+
+export const mockAppointmentServices: AppointmentService[] = [
+  {
+    appointmentServiceId: 1,
+    uuid: 'service-uuid-1',
+    name: 'General Medicine OPD Consultation',
+    description: 'Appointment for General Medicine Consultation',
+    speciality: { uuid: 'speciality-uuid-1', name: 'General Medicine' },
+    startTime: '09:00',
+    endTime: '17:00',
+    location: { uuid: 'location-uuid-1', name: 'General OPD' },
+    durationMins: 15,
+    color: '#00FF00',
+    initialAppointmentStatus: 'Scheduled',
+    attributes: [
+      {
+        uuid: 'attr-uuid-1',
+        attributeType: 'serviceType',
+        attributeTypeUuid: 'attr-type-uuid-1',
+        value: 'OPD',
+      },
+    ],
+  },
+  {
+    appointmentServiceId: 2,
+    uuid: 'service-uuid-2',
+    name: 'ENT OPD Consultation',
+    description: 'Appointment for ENT Consultation',
+    speciality: { uuid: 'speciality-uuid-2', name: 'ENT' },
+    startTime: '10:00',
+    endTime: '16:00',
+    location: { uuid: 'location-uuid-2', name: 'ENT Ward' },
+    durationMins: 30,
+    color: '#0000FF',
+    initialAppointmentStatus: 'Scheduled',
+    attributes: [
+      {
+        uuid: 'attr-uuid-2',
+        attributeType: 'serviceType',
+        attributeTypeUuid: 'attr-type-uuid-1',
+        value: 'OPD',
+      },
+    ],
+  },
+  {
+    appointmentServiceId: 3,
+    uuid: 'service-uuid-3',
+    name: 'General Consultation',
+    description: null,
+    speciality: null,
+    startTime: '08:00',
+    endTime: '18:00',
+    location: null,
+    durationMins: null,
+    color: '#FF0000',
+    initialAppointmentStatus: null,
+    attributes: null,
+  },
+];

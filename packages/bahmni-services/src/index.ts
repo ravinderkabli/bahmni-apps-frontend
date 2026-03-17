@@ -75,11 +75,11 @@ export {
   getAppointmentById,
   getUpcomingAppointments,
   getPastAppointments,
-} from './AppointmentService/appointmmetService';
-export {
+  getAllAppointmentServices,
   APPOINTMENT_STATUSES,
   APPOINTMENT_IDENTIFIER_SYSTEM,
-} from './AppointmentService/constants';
+  type AppointmentService,
+} from './appointmentService';
 export { getFormattedError } from './errorHandling';
 export {
   capitalize,

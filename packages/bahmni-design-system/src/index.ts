@@ -40,7 +40,14 @@ export { TextInput, type TextInputProps } from './atoms/textInput';
 export { TextArea, type TextAreaProps } from './atoms/textArea';
 export { RowCell, type RowCellProps } from './atoms/rowCell';
 export { NotificationContainer } from './molecules/notification';
-export { SortableDataTable } from './molecules/sortableDataTable';
+export {
+  SortableDataTable,
+  type SortableDataTableProps,
+} from './molecules/sortableDataTable';
+export {
+  ActionDataTable,
+  type ActionDataTableProps,
+} from './molecules/actionDataTable';
 export { ExpandableDataTable } from './molecules/expandableDataTable';
 export {
   SimpleDataTable,

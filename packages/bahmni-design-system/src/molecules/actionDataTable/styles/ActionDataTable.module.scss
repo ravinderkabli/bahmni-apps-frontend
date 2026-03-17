@@ -1,0 +1,11 @@
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.actionDataTableBody {
+  padding-block-start: 0;
+  h2 {
+    @include type-style("heading-compact-02");
+  }
+}

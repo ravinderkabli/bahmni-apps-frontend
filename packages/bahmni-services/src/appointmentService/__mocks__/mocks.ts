@@ -1,42 +1,38 @@
-import type {
-  Appointment as FhirAppointment,
-  Bundle,
-  BundleEntry,
-} from 'fhir/r4';
+import type { Appointment, Bundle, BundleEntry } from 'fhir/r4';
 
-export const createEmptyBundle = (): Bundle<FhirAppointment> => ({
+export const createEmptyBundle = (): Bundle<Appointment> => ({
   resourceType: 'Bundle',
   type: 'searchset',
   entry: [],
 });
 
 export const createBundleWithEntry = (
-  entry: BundleEntry<FhirAppointment>[],
-): Bundle<FhirAppointment> => ({
+  entry: BundleEntry<Appointment>[],
+): Bundle<Appointment> => ({
   resourceType: 'Bundle',
   type: 'searchset',
   entry,
 });
 
 export const createBundleWithAppointments = (
-  appointments: FhirAppointment[],
-): Bundle<FhirAppointment> =>
+  appointments: Appointment[],
+): Bundle<Appointment> =>
   createBundleWithEntry(
     appointments.map((appt) => ({
       resource: appt,
     })),
   );
 
-export const createMockFhirAppointment = (
+export const createMockAppointment = (
   uuid: string,
   appointmentNumber: string,
   startDate: string,
   provider: string,
   status: string,
-): FhirAppointment => ({
+): Appointment => ({
   resourceType: 'Appointment',
   id: uuid,
-  status: status as FhirAppointment['status'],
+  status: status as Appointment['status'],
   identifier: [
     {
       system: 'urn:system:bahmni:appointments',
@@ -83,8 +79,8 @@ export const createMockFhirAppointment = (
 });
 
 export const createMockAppointmentBundle = (
-  appointments: FhirAppointment[],
-): Bundle<FhirAppointment> => ({
+  appointments: Appointment[],
+): Bundle<Appointment> => ({
   resourceType: 'Bundle',
   type: 'searchset',
   entry: appointments.map((resource) => ({

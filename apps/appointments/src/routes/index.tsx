@@ -6,11 +6,22 @@ const IndexPage = lazy(() =>
   import('../pages/').then((module) => ({ default: module.IndexPage })),
 );
 
+const AllServicesPage = lazy(() =>
+  import('../pages/admin/allServices').then((module) => ({
+    default: module.default,
+  })),
+);
+
 export const routes: Routes = [
   {
     path: '/',
     component: IndexPage,
     name: 'Index',
+  },
+  {
+    path: '/admin/services',
+    component: AllServicesPage,
+    name: 'AdminAllServices',
   },
 ];
 

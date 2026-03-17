@@ -1,1 +1,17 @@
-{}
+{
+  "ADMIN_ALL_SERVICES_COLUMN_ACTIONS": "Actions",
+  "ADMIN_ALL_SERVICES_COLUMN_DESCRIPTION": "Description",
+  "ADMIN_ALL_SERVICES_COLUMN_DURATION_MINS": "Duration (mins)",
+  "ADMIN_ALL_SERVICES_COLUMN_LOCATION": "Location",
+  "ADMIN_ALL_SERVICES_COLUMN_NAME": "Service Name",
+  "ADMIN_ALL_SERVICES_COLUMN_SPECIALITY": "Speciality",
+  "ADMIN_ALL_SERVICES_EMPTY_MESSAGE": "No services found.",
+  "ADMIN_ALL_SERVICES_ERROR_MESSAGE": "Failed to load services. Please try again.",
+  "ADMIN_ALL_SERVICES_TITLE": "Services",
+  "BREADCRUMB_ADMIN": "Admin",
+  "BREADCRUMB_HOME": "Home",
+  "CONFIG_ERROR_SCHEMA_VALIDATION_FAILED": "Configuration does not match required schema",
+  "CONFIG_ERROR_VALIDATION_FAILED": "Configuration validation failed",
+  "ERROR_CONFIG_GENERIC_MESSAGE": "Unable to load {{config}}. Please try refreshing the page.",
+  "ERROR_CONFIG_TITLE": "{{config}} Error"
+}
