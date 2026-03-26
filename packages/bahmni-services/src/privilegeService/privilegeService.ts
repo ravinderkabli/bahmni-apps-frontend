@@ -29,10 +29,14 @@ export const getCurrentUserPrivileges = async (): Promise<
  */
 export const hasPrivilege = (
   userPrivileges: UserPrivilege[] | null,
-  requiredPrivilege: string | string[],
+  requiredPrivilege: string | string[] | undefined,
 ): boolean => {
   if (!userPrivileges || userPrivileges.length === 0) {
     return false;
+  }
+
+  if (!requiredPrivilege || requiredPrivilege.length === 0) {
+    return true;
   }
 
   const requiredPrivileges = Array.isArray(requiredPrivilege)

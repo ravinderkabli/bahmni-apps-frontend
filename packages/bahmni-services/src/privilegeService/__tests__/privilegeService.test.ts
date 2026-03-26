@@ -180,13 +180,24 @@ describe('privilegeService', () => {
       expect(result).toBe(false);
     });
 
-    it('should return false when privilege name is empty string', () => {
+    it('should return true when privilege name is empty string (treated as no restriction)', () => {
       // Act
       const result = hasPrivilege(mockUserPrivileges, '');
 
       // Assert
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
+
+    it('should return true when privilege name is undefined (treated as no restriction)', () => {
+      const result = hasPrivilege(mockUserPrivileges, undefined);
+      expect(result).toBe(true);
+    });
+
+    it('should return true when privilege is an empty array (treated as no restriction)', () => {
+      const result = hasPrivilege(mockUserPrivileges, []);
+      expect(result).toBe(true);
+    });
+
     it('should handle privileges with special characters', () => {
       // Arrange
       const specialPrivileges: UserPrivilege[] = [
