@@ -1,6 +1,7 @@
 import {
   getFormattedDocumentReferences,
   useSubscribeConsultationSaved,
+  DEFAULT_DATE_FORMAT_STORAGE_KEY,
 } from '@bahmni/services';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
@@ -17,7 +18,6 @@ jest.mock('../../hooks/usePatientUUID', () => ({
 jest.mock('@bahmni/services', () => ({
   ...jest.requireActual('@bahmni/services'),
   useTranslation: () => ({ t: (key: string) => key }),
-  formatDate: () => ({ formattedResult: '2024-01-15 10:30 AM' }),
   getFormattedDocumentReferences: jest.fn(),
   useSubscribeConsultationSaved: jest.fn(),
 }));
@@ -123,6 +123,7 @@ describe('DocumentsTable Integration', () => {
     (useNotification as jest.Mock).mockReturnValue({
       addNotification: mockAddNotification,
     });
+    localStorage.setItem(DEFAULT_DATE_FORMAT_STORAGE_KEY, 'dd/MM/yyyy');
   });
 
   afterEach(() => {
