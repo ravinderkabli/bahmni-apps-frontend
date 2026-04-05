@@ -1,0 +1,202 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/type' as *;
+@use '@carbon/react/scss/colors' as *;
+@use '@carbon/react/scss/theme' as *;
+
+// Anchor it just above the mic button (3.5rem button + spacing-07 bottom + gap)
+.popup {
+  position: fixed;
+  bottom: calc(3.5rem + #{$spacing-07} + #{$spacing-04});
+  right: $spacing-07;
+  z-index: 9001;
+  width: 22rem;
+  background-color: $background;
+  border: 1px solid $border-subtle-00;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: $spacing-04 $spacing-05;
+  animation: slideUp 0.2s ease;
+
+  // Arrow pointing down toward the mic button
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    right: 1.25rem;
+    width: 12px;
+    height: 12px;
+    background-color: $background;
+    border-right: 1px solid $border-subtle-00;
+    border-bottom: 1px solid $border-subtle-00;
+    transform: rotate(45deg);
+  }
+}
+
+// ── Standby ──────────────────────────────────────────────────────────────────
+
+.standbyContent {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $blue-40;
+  flex-shrink: 0;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+.hint {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+}
+
+// ── Listening ─────────────────────────────────────────────────────────────────
+
+.listeningContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+}
+
+.listeningHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.listeningLabel {
+  @include type-style('label-01');
+  color: $red-50;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+
+.bar {
+  width: 4px;
+  border-radius: 2px;
+  background-color: $red-50;
+  animation: equalize 0.8s ease-in-out infinite alternate;
+
+  &:nth-child(1) { animation-delay: 0s;    height: 8px; }
+  &:nth-child(2) { animation-delay: 0.15s; height: 14px; }
+  &:nth-child(3) { animation-delay: 0.3s;  height: 10px; }
+  &:nth-child(4) { animation-delay: 0.45s; height: 16px; }
+}
+
+.transcript {
+  @include type-style('body-compact-01');
+  margin: 0;
+  word-break: break-word;
+  max-height: 4rem;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+/** Committed (finalized) speech — rendered in primary/black colour */
+.finalText {
+  color: $text-primary;
+}
+
+/** In-flight interim speech — rendered in grey while the engine is still deciding */
+.interimText {
+  color: $text-secondary;
+  font-style: italic;
+}
+
+.placeholder {
+  color: $text-placeholder;
+  font-style: normal;
+}
+
+.tapHint {
+  @include type-style('label-01');
+  color: $text-placeholder;
+  text-align: right;
+}
+
+// ── Confirming ────────────────────────────────────────────────────────────────
+
+.confirmingContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.confirmedTranscript {
+  @include type-style('body-compact-01');
+  color: $text-primary;
+  margin: 0;
+  word-break: break-word;
+  max-height: 5rem;
+  overflow-y: auto;
+  line-height: 1.4;
+  padding: $spacing-03;
+  background-color: $layer-01;
+  border-radius: 4px;
+  border-left: 3px solid $blue-60;
+}
+
+.confirmActions {
+  display: flex;
+  gap: $spacing-03;
+  justify-content: flex-end;
+}
+
+// ── Processing ────────────────────────────────────────────────────────────────
+
+.processingContent {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid $blue-20;
+  border-top-color: $blue-60;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: spin 0.7s linear infinite;
+}
+
+.processingText {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14rem;
+}
+
+// ── Animations ────────────────────────────────────────────────────────────────
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.3); }
+}
+
+@keyframes equalize {
+  from { transform: scaleY(0.4); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

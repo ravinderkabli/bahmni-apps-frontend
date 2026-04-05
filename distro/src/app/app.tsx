@@ -2,6 +2,7 @@ import { Loading } from '@bahmni/design-system';
 import { AppContextProvider } from '@bahmni/widgets';
 import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import AgentBahmni from '../agent/components/AgentBahmni';
 
 const IndexPage = lazy(() =>
   import('./IndexPage').then((module) => ({ default: module.IndexPage })),
@@ -36,6 +37,7 @@ export function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      <AgentBahmni />
     </AppContextProvider>
   );
 }

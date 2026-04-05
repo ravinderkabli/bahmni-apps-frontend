@@ -1,0 +1,108 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/colors' as *;
+@use '@carbon/react/scss/theme' as *;
+
+.micButton {
+  position: fixed;
+  bottom: $spacing-07;
+  right: $spacing-07;
+  z-index: 9000;
+  border-radius: 50%;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background-color: $blue-60;
+  color: $white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: background-color 70ms ease, box-shadow 70ms ease;
+
+  &:hover {
+    background-color: $blue-70;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+// Standby: slow gentle breathing ring — waiting for "Hey Bahmni"
+.standby {
+  background-color: $blue-60;
+
+  .standbyRing {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid rgba(15, 98, 254, 0.45);
+    animation: breathe 2.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+}
+
+// Listening: active red pulse — heard wake word, recording command
+.listening {
+  background-color: $red-60;
+  animation: pulse 1.2s ease-in-out infinite;
+
+  &:hover {
+    background-color: $red-70;
+  }
+}
+
+.error {
+  background-color: $red-50;
+}
+
+// Off/idle: blue but dimmer — still clearly clickable
+.off {
+  background-color: $blue-40;
+  opacity: 0.75;
+
+  &:hover {
+    background-color: $blue-50;
+    opacity: 1;
+  }
+}
+
+// Unsupported: grey, not clickable
+.unsupported {
+  background-color: $gray-40;
+  cursor: not-allowed;
+
+  &:hover {
+    background-color: $gray-40;
+  }
+}
+
+.spinner {
+  color: $white;
+}
+
+// Breathing ring for standby
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
+
+// Active pulse for listening
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(218, 30, 40, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgba(218, 30, 40, 0);
+  }
+}

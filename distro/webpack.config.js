@@ -3,6 +3,7 @@ const { NxReactWebpackPlugin } = require('@nx/react/webpack-plugin');
 const { InjectManifest } = require('workbox-webpack-plugin');
 const webpack = require('webpack');
 const { join } = require('path');
+const https = require('https');
 
 module.exports = (env, argv) => {
   //TODO to read this from docker compose
@@ -39,6 +40,50 @@ module.exports = (env, argv) => {
           logLevel: 'debug',
         },
       ],
+      setupMiddlewares: (middlewares, devServer) => {
+        // Custom Anthropic middleware: builds a fresh Node.js HTTPS request
+        // with only the required headers — no browser/CORS headers ever reach Anthropic.
+        devServer.app.post('/anthropic-proxy/v1/messages', (req, res) => {
+          let body = '';
+          req.on('data', (chunk) => { body += chunk; });
+          req.on('end', () => {
+            const apiKey = req.headers['x-api-key'];
+            const anthropicVersion = req.headers['anthropic-version'] || '2023-06-01';
+
+            console.log(`[anthropic-proxy] → POST /v1/messages  key=${String(apiKey).slice(0, 12)}...`);
+
+            const options = {
+              hostname: 'api.anthropic.com',
+              port: 443,
+              path: '/v1/messages',
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': anthropicVersion,
+                'content-length': Buffer.byteLength(body),
+              },
+            };
+
+            const anthropicReq = https.request(options, (anthropicRes) => {
+              console.log(`[anthropic-proxy] ← ${anthropicRes.statusCode}`);
+              res.statusCode = anthropicRes.statusCode;
+              res.setHeader('content-type', 'application/json');
+              anthropicRes.pipe(res);
+            });
+
+            anthropicReq.on('error', (err) => {
+              console.error('[anthropic-proxy] Request error:', err.message);
+              res.statusCode = 502;
+              res.end(JSON.stringify({ error: { type: 'proxy_error', message: err.message } }));
+            });
+
+            anthropicReq.write(body);
+            anthropicReq.end();
+          });
+        });
+        return middlewares;
+      },
     },
     plugins: [
       new webpack.DefinePlugin({
