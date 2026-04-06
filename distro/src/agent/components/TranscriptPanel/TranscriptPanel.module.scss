@@ -5,11 +5,11 @@
 
 .panel {
   position: fixed;
-  bottom: calc(3.5rem + #{$spacing-07} + #{$spacing-05});
+  bottom: $spacing-07;
   right: $spacing-07;
   z-index: 8999;
-  width: 22rem;
-  max-height: 50vh;
+  width: 24rem;
+  max-height: 60vh;
   display: flex;
   flex-direction: column;
   background-color: $background;
@@ -176,5 +176,56 @@
   // Let the TextInput expand to fill available space
   :global(.cds--text-input-wrapper) {
     flex: 1;
+  }
+}
+
+// ── Inline mic button ─────────────────────────────────────────────────────────
+
+.micBtn {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $blue-60;
+  color: $white;
+  transition: background-color 70ms ease, box-shadow 70ms ease;
+  margin-bottom: $spacing-01;
+
+  &:hover:not(:disabled) {
+    background-color: $blue-70;
+  }
+
+  &:disabled {
+    background-color: $gray-40;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+.micBtnActive {
+  background-color: $red-60;
+  animation: micPulse 1.2s ease-in-out infinite;
+
+  &:hover:not(:disabled) {
+    background-color: $red-70;
+  }
+}
+
+@keyframes micPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(218, 30, 40, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(218, 30, 40, 0);
   }
 }

@@ -14,6 +14,9 @@ export const AGENT_OPEN_CONSULTATION_PAD_EVENT = 'agent-open-consultation-pad';
 
 export const STT_SILENCE_DEBOUNCE_MS = 1500;
 
+/** Local faster-whisper server (replaces Chrome's cloud Web Speech API) */
+export const WHISPER_SERVER_URL = 'http://localhost:8765';
+
 /** System prompt sent on every Claude call (not stored in conversation history) */
 export const AGENT_SYSTEM_PROMPT = `You are Agent Bahmni, a clinical AI assistant for Bahmni EMR.
 You help clinical staff register patients, search existing patients, open consultations, and record clinical data.

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { callClaude, extractTextContent } from '../services/anthropicService';
-import { useAgentStore } from '../stores/agentStore';
-import { useToolExecutor } from './useToolExecutor';
 import { AGENT_SYSTEM_PROMPT } from '../constants/agentConstants';
-import { AGENT_TOOLS } from '../types/toolSchemas';
-import { ToolUseContentBlock } from '../types/agentTypes';
+import { callClaude, extractTextContent } from '../services/anthropicService';
 import {
   createSpeechService,
   isSTTSupported,
   SpeechService,
 } from '../services/sttService';
+import { useAgentStore } from '../stores/agentStore';
+import { ToolUseContentBlock } from '../types/agentTypes';
+import { AGENT_TOOLS } from '../types/toolSchemas';
+import { useToolExecutor } from './useToolExecutor';
 
 /**
  * Core orchestration loop (no wake word — mic click only):
@@ -99,46 +99,24 @@ export const useAgentOrchestrator = () => {
   const startMainListening = useCallback(() => {
     const { currentLanguage } = useAgentStore.getState();
 
+    // Show 'starting' immediately so the mic button gives feedback,
+    // but don't allow stop until capture is actually live (onReady fires).
+    useAgentStore.getState().setStatus('starting');
+
     mainSttRef.current = createSpeechService(
       // onInterim — update live transcript: finalText (black) + interimText (grey)
       (finalText, interimText) => {
         useAgentStore.getState().setTranscript(finalText);
         useAgentStore.getState().setInterimTranscript(interimText);
       },
-      // onFinal — confirmed text, send to Claude
-      async (final) => {
+      // onFinal — transcript ready; surface in text input for review, don't auto-send
+      (final) => {
         useAgentStore.getState().setTranscript(final);
         useAgentStore.getState().setInterimTranscript('');
         useAgentStore.getState().clearConfirmCallbacks();
-
-        // STT already stopped by fireSilence/stopAndSend; clear the ref
         mainSttRef.current = null;
-
-        if (!final.trim() || isProcessingRef.current) {
-          useAgentStore.getState().setStatus('idle');
-          return;
-        }
-
-        isProcessingRef.current = true;
-
-        const { apiKey } = useAgentStore.getState();
-        if (!apiKey) {
-          // Prompt for key. Store a callback so ApiKeyModal can re-run this
-          // command immediately after the key is saved — no need to speak again.
-          useAgentStore.getState().setApiKeyConfirmedCallback(async () => {
-            useAgentStore.getState().setIsOpen(true);
-            useAgentStore.getState().appendUserMessage(final);
-            await callClaudeLoop();
-          });
-          useAgentStore.getState().setApiKeyModalOpen(true);
-          useAgentStore.getState().setStatus('processing'); // show "waiting" state
-          return;
-        }
-
-        useAgentStore.getState().setIsOpen(true);
-        useAgentStore.getState().appendUserMessage(final);
-
-        await callClaudeLoop();
+        isProcessingRef.current = false;
+        useAgentStore.getState().setStatus('idle');
       },
       // onSilence — pause for user to choose Submit or Continue
       (silentText) => {
@@ -171,36 +149,43 @@ export const useAgentOrchestrator = () => {
           useAgentStore.getState().setStatus('idle');
         }
       },
+      // onReady — audio capture is live; now safe to show stop button
+      () => {
+        useAgentStore.getState().setStatus('listening');
+      },
     );
 
     mainSttRef.current.setLanguage(currentLanguage);
     mainSttRef.current.start();
-    useAgentStore.getState().setStatus('listening');
   }, [callClaudeLoop]);
 
   // ─── Text command (typed input) ──────────────────────────────────────────
 
-  const sendTextCommand = useCallback(async (text: string) => {
-    if (!text.trim() || isProcessingRef.current) return;
-    isProcessingRef.current = true;
+  const sendTextCommand = useCallback(
+    async (text: string) => {
+      if (!text.trim() || isProcessingRef.current) return;
+      isProcessingRef.current = true;
+      useAgentStore.getState().setTranscript('');
 
-    const { apiKey } = useAgentStore.getState();
-    if (!apiKey) {
-      useAgentStore.getState().setApiKeyConfirmedCallback(async () => {
-        useAgentStore.getState().setIsOpen(true);
-        useAgentStore.getState().appendUserMessage(text);
-        await callClaudeLoop();
-      });
-      useAgentStore.getState().setApiKeyModalOpen(true);
-      useAgentStore.getState().setStatus('processing');
-      isProcessingRef.current = false;
-      return;
-    }
+      const { apiKey } = useAgentStore.getState();
+      if (!apiKey) {
+        useAgentStore.getState().setApiKeyConfirmedCallback(async () => {
+          useAgentStore.getState().setIsOpen(true);
+          useAgentStore.getState().appendUserMessage(text);
+          await callClaudeLoop();
+        });
+        useAgentStore.getState().setApiKeyModalOpen(true);
+        useAgentStore.getState().setStatus('processing');
+        isProcessingRef.current = false;
+        return;
+      }
 
-    useAgentStore.getState().setIsOpen(true);
-    useAgentStore.getState().appendUserMessage(text);
-    await callClaudeLoop();
-  }, [callClaudeLoop]);
+      useAgentStore.getState().setIsOpen(true);
+      useAgentStore.getState().appendUserMessage(text);
+      await callClaudeLoop();
+    },
+    [callClaudeLoop],
+  );
 
   // ─── Mic button toggle ────────────────────────────────────────────────────
 
@@ -210,6 +195,11 @@ export const useAgentOrchestrator = () => {
     if (status === 'idle') {
       // Start listening directly — no wake word
       startMainListening();
+    } else if (status === 'starting') {
+      // Clicked stop before capture started — cancel and return to idle
+      mainSttRef.current?.stop();
+      mainSttRef.current = null;
+      useAgentStore.getState().setStatus('idle');
     } else if (status === 'listening') {
       if (mainSttRef.current) {
         // Tap to send — immediately fire onFinal with whatever was captured so far

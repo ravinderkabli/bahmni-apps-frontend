@@ -1,14 +1,11 @@
-import { STT_SILENCE_DEBOUNCE_MS } from '../constants/agentConstants';
+import { WHISPER_SERVER_URL } from '../constants/agentConstants';
 import { SupportedLanguage } from '../types/agentTypes';
 
 export interface SpeechService {
   start: () => void;
   stop: () => void;
-  /** Fire onFinal immediately with whatever was captured, then stop */
   stopAndSend: () => void;
-  /** User confirmed Submit — fire onFinal with captured text */
   confirmSend: () => void;
-  /** User chose Continue — resume mic, keep accumulated text */
   continueListening: () => void;
   setLanguage: (lang: SupportedLanguage) => void;
   isListening: () => boolean;
@@ -16,348 +13,363 @@ export interface SpeechService {
 
 export const isSTTSupported = (): boolean => {
   if (typeof window === 'undefined') return false;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = window as any;
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  return !!(w.SpeechRecognition || w.webkitSpeechRecognition);
+  const hasAudioContext = !!(w.AudioContext ?? w.webkitAudioContext);
+  return hasAudioContext && !!navigator.mediaDevices?.getUserMedia;
 };
 
-const log = (...args: unknown[]) => {
-  // eslint-disable-next-line no-console
-  console.log('[STT]', ...args);
-};
+// eslint-disable-next-line no-console
+const log = (...args: unknown[]) => console.log('[STT]', ...args);
 
 type OnInterimCallback = (finalText: string, interimText: string) => void;
 type OnFinalCallback = (transcript: string) => void;
 type OnSilenceCallback = (transcript: string) => void;
 type OnErrorCallback = (error: string) => void;
 
+/** Sample rate sent to Whisper — 16 kHz is optimal for speech models */
+const SAMPLE_RATE = 16000;
+
+/** How often accumulated audio is sent to Whisper for live transcription */
+const CHUNK_INTERVAL_MS = 3000;
+
+/** ScriptProcessorNode buffer size (must be power of 2) */
+const PROCESSOR_BUFFER_SIZE = 4096;
+
+// ─── WAV encoding ────────────────────────────────────────────────────────────
+
+const writeString = (view: DataView, offset: number, str: string) => {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
+};
+
+const encodeWav = (samples: Float32Array, sampleRate: number): Blob => {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true); // 16-bit
+  writeString(view, 36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' });
+};
+
+const mergeBuffers = (chunks: Float32Array[]): Float32Array => {
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Float32Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.length;
+  }
+  return out;
+};
+
+// ─── Speech service ───────────────────────────────────────────────────────────
+
+/**
+ * AudioContext-based speech service that captures raw PCM audio, encodes it
+ * as WAV in the browser, and sends it to the local faster-whisper server.
+ * No ffmpeg required — WAV is decoded natively by faster-whisper.
+ *
+ * Every CHUNK_INTERVAL_MS, the accumulated audio is flushed to Whisper and
+ * the result appended to the live transcript bubble.
+ */
 export const createSpeechService = (
   onInterim: OnInterimCallback,
   onFinal: OnFinalCallback,
-  onSilence: OnSilenceCallback,
+  _onSilence: OnSilenceCallback,
   onError: OnErrorCallback,
+  onReady?: () => void,
   seedText?: string,
 ): SpeechService => {
-  // const SpeechRecognitionCtor =
-  //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  //   (window as any).SpeechRecognition ??
-  //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  //   (window as any).webkitSpeechRecognition;
-
+  let stream: MediaStream | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let recognition: any = null;
+  let audioContext: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let processor: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let source: any = null;
+  let sampleChunks: Float32Array[] = [];
+  let chunkTimerId: ReturnType<typeof setInterval> | null = null;
+  let abortController: AbortController | null = null;
+
   let listening = false;
-  let silenceTimer: ReturnType<typeof setTimeout> | null = null;
   let currentLang: SupportedLanguage = 'en-IN';
+  let accumulatedText = seedText?.trim() ?? '';
+  let isFlushingChunk = false; // prevents overlapping Whisper calls
+  let captureSampleRate = SAMPLE_RATE; // updated once AudioContext is created
+  // Resolves when getUserMedia + AudioContext setup is complete.
+  // stopAndSend awaits this so it never flushes before audio capture starts.
+  let captureReady: Promise<void> = Promise.resolve();
 
-  let accumulatedFinal = seedText?.trim() ?? '';
-  let lastInterim = '';
-  let finalFired = false;
-  let silenceFired = false;
-  let sendPending = false;
-  let emptySpeechCount = 0;
-  const MAX_EMPTY_NO_SPEECH = 2;
-
-  const clearSilenceTimer = () => {
-    if (silenceTimer !== null) {
-      clearTimeout(silenceTimer);
-      silenceTimer = null;
+  const clearChunkTimer = () => {
+    if (chunkTimerId !== null) {
+      clearInterval(chunkTimerId);
+      chunkTimerId = null;
     }
   };
 
-  const capturedText = () => (accumulatedFinal || lastInterim).trim();
+  const teardown = () => {
+    clearChunkTimer();
+    try {
+      source?.disconnect();
+      processor?.disconnect();
+    } catch {
+      /* ignore */
+    }
+
+    audioContext?.close().catch(() => {
+      /* ignore */
+    });
+    stream?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+    audioContext = null;
+    processor = null;
+    source = null;
+    stream = null;
+    sampleChunks = [];
+  };
+
+  const transcribeWav = async (wav: Blob): Promise<string> => {
+    abortController = new AbortController();
+    const formData = new FormData();
+    formData.append('audio', wav, 'recording.wav');
+    formData.append('language', currentLang);
+
+    try {
+      const response = await fetch(`${WHISPER_SERVER_URL}/transcribe`, {
+        method: 'POST',
+        body: formData,
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => response.statusText);
+        throw new Error(`Whisper error ${response.status}: ${text}`);
+      }
+
+      const data = (await response.json()) as {
+        text?: string;
+        error?: string;
+      };
+      if (data.error) throw new Error(data.error);
+      return (data.text ?? '').trim();
+    } finally {
+      abortController = null;
+    }
+  };
 
   /**
-   * Stop recognition but keep the JS reference alive so Chrome can still
-   * fire onend. Medispeak pattern: never null the ref before onend fires.
+   * Drain current sampleChunks → encode WAV → send to Whisper → append result.
+   * If `isFinal` is true, tears down audio and calls onFinal.
    */
-  const callStop = () => {
-    if (recognition) {
-      try {
-        recognition.stop();
-      } catch {
-        /* ignore */
+  const flushAudio = async (isFinal: boolean) => {
+    if (isFlushingChunk && !isFinal) return; // skip if already transcribing
+    isFlushingChunk = true;
+
+    const chunks = sampleChunks;
+    sampleChunks = [];
+
+    log(
+      'flushAudio isFinal=%s samples=%d',
+      isFinal,
+      chunks.reduce((n, c) => n + c.length, 0),
+    );
+
+    if (chunks.length === 0) {
+      isFlushingChunk = false;
+      if (isFinal) {
+        teardown();
+        onFinal(accumulatedText);
       }
-      log('recognition.stop() called');
-    }
-  };
-
-  const clearRecognition = () => {
-    recognition = null;
-  };
-
-  const fireSilence = () => {
-    if (finalFired || silenceFired) {
-      log(
-        'fireSilence: skipped (finalFired=%s silenceFired=%s)',
-        finalFired,
-        silenceFired,
-      );
       return;
     }
-    const text = capturedText();
-    if (!text) {
-      log('fireSilence: no text, skipping');
+
+    onInterim(accumulatedText, 'Transcribing…');
+
+    const wav = encodeWav(mergeBuffers(chunks), captureSampleRate);
+
+    let newText = '';
+    try {
+      newText = await transcribeWav(wav);
+    } catch (err) {
+      isFlushingChunk = false;
+      if (err instanceof Error && err.name === 'AbortError') {
+        log('fetch aborted');
+        return;
+      }
+      log('transcribe error:', err);
+      onError(err instanceof Error ? err.message : 'transcription-failed');
       return;
     }
-    log('fireSilence:', JSON.stringify(text));
-    silenceFired = true;
-    listening = false;
-    callStop();
-    onSilence(text);
+
+    isFlushingChunk = false;
+
+    if (newText) {
+      accumulatedText = accumulatedText
+        ? `${accumulatedText} ${newText}`
+        : newText;
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      '[STT] 🎤 chunk transcript: %s | accumulated: %s',
+      JSON.stringify(newText || '(empty — no speech detected)'),
+      JSON.stringify(accumulatedText),
+    );
+
+    if (isFinal) {
+      teardown();
+      onFinal(accumulatedText);
+    } else {
+      onInterim(accumulatedText, 'Recording…');
+    }
   };
 
-  const fireFinal = () => {
-    if (finalFired) {
-      log('fireFinal: already fired, skipping');
+  const startAudioCapture = async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      log('getUserMedia error:', err);
+      onError('microphone-access-denied');
+      listening = false;
+      onInterim('', '');
       return;
     }
-    const text = capturedText();
-    log('fireFinal:', JSON.stringify(text));
-    finalFired = true;
-    onFinal(text);
-  };
 
-  const resetSilenceTimer = () => {
-    clearSilenceTimer();
-    silenceTimer = setTimeout(() => {
-      log('silence timer expired (%dms)', STT_SILENCE_DEBOUNCE_MS);
-      fireSilence();
-    }, STT_SILENCE_DEBOUNCE_MS);
-  };
-
-  const buildRecognition = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const r: any = new SpeechRecognition();
-    r.continuous = false;
-    r.interimResults = false;
-    r.maxAlternatives = 1;
-    // currentLang = 
-    // r.lang = currentLang;
-    r.lang = "en-US";
-    log('buildRecognition lang=%s', r.lang);
-
-    r.onstart = () => {
-      log('recognition.onstart');
-    };
+    if (!listening) {
+      stream.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+      stream = null;
+      return;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    r.onresult = (event: any) => {
-      log(
-        'onresult resultIndex=%d results.length=%d',
-        event.resultIndex,
-        event.results.length,
-      );
-      let interimText = '';
-      let newFinalText = '';
+    const AudioCtx = window.AudioContext ?? (window as any).webkitAudioContext;
+    // Use default sample rate — requesting 16000 is ignored by Chrome.
+    // We capture at the native rate and encode the WAV with that rate;
+    // Whisper resamples internally.
+    audioContext = new AudioCtx();
+    // AudioContext may be suspended when created after an await — resume it.
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+    const nativeSampleRate: number = audioContext.sampleRate as number;
+    captureSampleRate = nativeSampleRate;
+    log(
+      'AudioContext state=%s nativeSampleRate=%d',
+      audioContext.state,
+      nativeSampleRate,
+    );
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        log(
-          '  result[%d] isFinal=%s transcript=%s',
-          i,
-          result.isFinal,
-          JSON.stringify(result[0].transcript),
-        );
-        if (result.isFinal) {
-          newFinalText += result[0].transcript;
-        } else {
-          interimText += result[0].transcript;
-        }
-      }
-
-      if (newFinalText) {
-        accumulatedFinal += ' ' + newFinalText;
-        accumulatedFinal = accumulatedFinal.trim();
-        log('accumulated:', JSON.stringify(accumulatedFinal));
-      }
-      if (interimText) {
-        lastInterim = (accumulatedFinal + ' ' + interimText).trim();
-      }
-
-      const hasSomething = accumulatedFinal || interimText;
-      if (hasSomething) {
-        emptySpeechCount = 0;
-        onInterim(accumulatedFinal.trim(), interimText.trim());
-        resetSilenceTimer();
-      }
-    };
+    source = audioContext.createMediaStreamSource(stream);
+    processor = audioContext.createScriptProcessor(
+      PROCESSOR_BUFFER_SIZE,
+      1, // input channels
+      1, // output channels
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    r.onerror = (event: any) => {
-      log('onerror: %s', event.error);
-      if (event.error === 'no-speech') {
-        const text = capturedText();
-        if (text) {
-          fireSilence();
-        } else {
-          emptySpeechCount += 1;
-          if (emptySpeechCount >= MAX_EMPTY_NO_SPEECH) {
-            log('max empty no-speech → onError');
-            onError('no-speech-timeout');
-          }
-        }
-        return;
-      }
-      if (event.error === 'aborted') {
-        log('onerror: aborted (ignored)');
-        return;
-      }
-      onError(event.error);
+    processor.onaudioprocess = (e: any) => {
+      if (!listening) return;
+      sampleChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
     };
 
-    r.onend = () => {
-      log(
-        'onend listening=%s finalFired=%s silenceFired=%s sendPending=%s captured=%s',
-        listening,
-        finalFired,
-        silenceFired,
-        sendPending,
-        JSON.stringify(capturedText()),
-      );
+    source.connect(processor);
+    processor.connect(audioContext.destination);
 
-      // User tapped mic — fire final with whatever Chrome flushed into onresult
-      if (sendPending) {
-        sendPending = false;
-        clearRecognition();
-        fireFinal();
-        return;
-      }
+    log(
+      'audio capture started nativeSampleRate=%d chunkInterval=%dms',
+      nativeSampleRate,
+      CHUNK_INTERVAL_MS,
+    );
 
-      // Restart if we're still supposed to be listening
-      if (listening && !finalFired && !silenceFired) {
-        log('onend → restarting recognition');
-        clearRecognition();
-        recognition = buildRecognition();
-        try {
-          recognition.start();
-        } catch {
-          setTimeout(() => {
-            if (listening && !finalFired && !silenceFired) {
-              clearRecognition();
-              recognition = buildRecognition();
-              try {
-                recognition.start();
-              } catch {
-                log('onend retry failed');
-              }
-            }
-          }, 150);
-        }
-        return;
-      }
+    onInterim(accumulatedText, 'Recording…');
 
-      clearRecognition();
-      log('onend → done');
-    };
+    // Flush audio to Whisper every CHUNK_INTERVAL_MS
+    chunkTimerId = setInterval(() => {
+      log('chunk timer fired');
+      void flushAudio(false);
+    }, CHUNK_INTERVAL_MS);
 
-    return r;
+    // Notify caller that capture is live — mic button can now show "stop" state
+    onReady?.();
   };
 
   return {
     start: () => {
       if (listening) {
-        log('start: already listening, ignoring');
+        log('start: already listening');
         return;
       }
-      log('start seed=%s', JSON.stringify(seedText));
+      log('start');
       listening = true;
-      finalFired = false;
-      silenceFired = false;
-      sendPending = false;
-      emptySpeechCount = 0;
-      accumulatedFinal = seedText?.trim() ?? '';
-      lastInterim = '';
-      recognition = buildRecognition();
-      try {
-        recognition.start();
-        if (accumulatedFinal) {
-          onInterim(accumulatedFinal, '');
-          resetSilenceTimer();
-        }
-      } catch {
-        log('start failed');
-        onError('STT_START_FAILED');
-      }
+      accumulatedText = seedText?.trim() ?? '';
+      onInterim(accumulatedText, 'Recording…');
+      captureReady = startAudioCapture();
     },
 
     stop: () => {
-      log('stop()');
+      log('stop');
       listening = false;
-      sendPending = false;
-      clearSilenceTimer();
-      callStop();
-      clearRecognition();
-      accumulatedFinal = '';
-      lastInterim = '';
-      finalFired = false;
-      silenceFired = false;
-      emptySpeechCount = 0;
+      clearChunkTimer();
+      abortController?.abort();
+      abortController = null;
+      teardown();
+      accumulatedText = '';
+      onInterim('', '');
     },
 
     stopAndSend: () => {
-      log('stopAndSend() captured=%s', JSON.stringify(capturedText()));
-      clearSilenceTimer();
+      log('stopAndSend accumulated=%s', JSON.stringify(accumulatedText));
       listening = false;
-      sendPending = true;
-      // Keep recognition reference alive so Chrome can fire onend.
-      // onend sees sendPending=true and calls fireFinal() there.
-      callStop();
-
-      // Fallback: if onend never fires, fire final after 500ms
-      setTimeout(() => {
-        if (sendPending) {
-          log(
-            'stopAndSend fallback (onend did not fire) captured=%s',
-            JSON.stringify(capturedText()),
-          );
-          sendPending = false;
-          clearRecognition();
-          fireFinal();
-        }
-      }, 500);
+      clearChunkTimer();
+      // Wait for audio capture to be ready before flushing — prevents
+      // the race where stopAndSend fires before getUserMedia resolves.
+      void captureReady.then(() => flushAudio(true));
     },
 
     confirmSend: () => {
-      log('confirmSend() captured=%s', JSON.stringify(capturedText()));
-      clearSilenceTimer();
-      fireFinal();
+      log('confirmSend accumulated=%s', JSON.stringify(accumulatedText));
+      listening = false;
+      clearChunkTimer();
+      void captureReady.then(() => flushAudio(true));
     },
 
     continueListening: () => {
-      if (finalFired) {
-        log('continueListening: finalFired, ignoring');
-        return;
-      }
-      log('continueListening()');
-      clearSilenceTimer();
-      silenceFired = false;
-      emptySpeechCount = 0;
+      log('continueListening');
       listening = true;
-      clearRecognition();
-      recognition = buildRecognition();
-      try {
-        recognition.start();
-      } catch {
-        log('continueListening start failed');
-        onError('STT_RESTART_FAILED');
+      if (!audioContext) {
+        captureReady = startAudioCapture();
+      } else {
+        onInterim(accumulatedText, 'Recording…');
+        chunkTimerId = setInterval(() => {
+          log('chunk timer fired (resumed)');
+          void flushAudio(false);
+        }, CHUNK_INTERVAL_MS);
       }
     },
 
     setLanguage: (lang: SupportedLanguage) => {
       log('setLanguage: %s', lang);
       currentLang = lang;
-      if (listening && recognition) {
-        callStop();
-        clearRecognition();
-        recognition = buildRecognition();
-        try {
-          recognition.start();
-        } catch {
-          onError('STT_RESTART_FAILED');
-        }
-      }
     },
 
     isListening: () => listening,

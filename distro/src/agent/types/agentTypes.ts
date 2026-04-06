@@ -1,7 +1,8 @@
 export type AgentStatus =
   | 'standby'     // always-on wake word detection active
   | 'idle'        // mic fully off
-  | 'listening'   // wake word heard, recording full command
+  | 'starting'    // getUserMedia pending — mic permission requested, not yet capturing
+  | 'listening'   // AudioContext running, capturing audio
   | 'confirming'  // silence detected — waiting for user to Submit or Continue
   | 'processing'  // sending to Claude
   | 'speaking'

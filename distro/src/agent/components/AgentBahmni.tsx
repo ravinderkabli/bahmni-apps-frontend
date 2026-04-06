@@ -1,10 +1,7 @@
 import React from 'react';
-import { ToastNotification } from '@carbon/react';
 import { useAgentOrchestrator } from '../hooks/useAgentOrchestrator';
-import MicButton from './MicButton/MicButton';
-import TranscriptPanel from './TranscriptPanel/TranscriptPanel';
 import ApiKeyModal from './ApiKeyModal/ApiKeyModal';
-import styles from './AgentBahmni.module.scss';
+import TranscriptPanel from './TranscriptPanel/TranscriptPanel';
 
 /**
  * Root Agent Bahmni component — mounted once in App.tsx.
@@ -12,25 +9,16 @@ import styles from './AgentBahmni.module.scss';
  * The floating RecordingPopup has been merged into TranscriptPanel.
  */
 const AgentBahmni: React.FC = () => {
-  const { isSupported, toggleListening, sendTextCommand } = useAgentOrchestrator();
+  const { isSupported, toggleListening, sendTextCommand } =
+    useAgentOrchestrator();
 
   return (
     <>
-      {!isSupported && (
-        <div className={styles.unsupportedBanner}>
-          <ToastNotification
-            kind="warning"
-            title="Voice Unavailable"
-            subtitle="Agent Bahmni requires a browser that supports the Web Speech API (Chrome or Edge)."
-            hideCloseButton
-            lowContrast
-          />
-        </div>
-      )}
-
-      <TranscriptPanel onSendText={sendTextCommand} />
-
-      <MicButton onToggle={toggleListening} isSupported={isSupported} />
+      <TranscriptPanel
+        onSendText={sendTextCommand}
+        onToggleMic={toggleListening}
+        isSTTSupported={isSupported}
+      />
 
       <ApiKeyModal />
     </>
