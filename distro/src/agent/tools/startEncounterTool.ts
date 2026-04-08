@@ -1,19 +1,44 @@
-import { StartEncounterInput, ToolResult } from '../types/agentTypes';
 import {
-  AGENT_OPEN_CONSULTATION_PAD_EVENT,
-} from '../constants/agentConstants';
+  checkIfActiveVisitExists,
+  createVisitForPatient,
+  getVisitTypes,
+} from '@bahmni/services';
+import { AGENT_OPEN_CONSULTATION_PAD_EVENT } from '../constants/agentConstants';
 import { useAgentStore } from '../stores/agentStore';
+import { StartEncounterInput, ToolResult } from '../types/agentTypes';
 
 type NavigateFn = (path: string) => void;
 
-export const startEncounter = (
+export const startEncounter = async (
   input: StartEncounterInput,
   navigate: NavigateFn,
-): ToolResult => {
+): Promise<ToolResult> => {
   try {
-    // Track active patient in agent store
+    // 1. Ensure the patient has an active OPD visit before opening consultation
+    const hasActiveVisit = await checkIfActiveVisitExists(input.patientUuid);
+
+    if (!hasActiveVisit) {
+      const visitTypesResponse = await getVisitTypes();
+      const opdUuid = visitTypesResponse.visitTypes?.['OPD'];
+
+      if (!opdUuid) {
+        return {
+          success: false,
+          error:
+            'OPD visit type not found in Bahmni configuration. Please start a visit manually.',
+        };
+      }
+
+      await createVisitForPatient(input.patientUuid, {
+        name: 'OPD',
+        uuid: opdUuid,
+      });
+    }
+
+    // 2. Track active patient in agent store
     useAgentStore.getState().setActivePatientUuid(input.patientUuid);
 
+    // 3. Navigate to consultation page if not already there
     const currentPath = window.location.pathname;
     const targetPath = `/clinical/${input.patientUuid}/consultation`;
 
@@ -21,7 +46,7 @@ export const startEncounter = (
       navigate(targetPath);
     }
 
-    // Fire event so ConsultationPad knows to open the action area
+    // 4. Fire event so ConsultationPad knows to open the action area
     window.dispatchEvent(
       new CustomEvent(AGENT_OPEN_CONSULTATION_PAD_EVENT, {
         detail: { patientUuid: input.patientUuid },
@@ -32,7 +57,10 @@ export const startEncounter = (
       success: true,
       data: {
         patientUuid: input.patientUuid,
-        message: `Navigating to consultation for patient ${input.patientUuid}`,
+        visitStarted: !hasActiveVisit,
+        message: hasActiveVisit
+          ? `Patient already has an active OPD visit. Opened consultation.`
+          : `Started OPD visit and opened consultation for patient ${input.patientUuid}.`,
       },
     };
   } catch (err) {

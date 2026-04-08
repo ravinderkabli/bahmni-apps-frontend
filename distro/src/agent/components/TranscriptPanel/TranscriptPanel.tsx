@@ -40,29 +40,57 @@ const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
 
   const [inputText, setInputText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref so the auto-send timeout always reads the latest edited value
+  const inputTextRef = useRef(inputText);
+
+  const clearAutoSendTimer = () => {
+    if (autoSendTimerRef.current !== null) {
+      clearTimeout(autoSendTimerRef.current);
+      autoSendTimerRef.current = null;
+    }
+  };
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    inputTextRef.current = inputText;
+  }, [inputText]);
 
   // Mirror live transcript into the text input while recording
   useEffect(() => {
     if (status === 'listening') {
-      // Only show actual spoken words — skip status strings like "Recording…"
       setInputText(transcript);
     }
   }, [transcript, status]);
 
-  // When recording ends, populate input with final transcript for review/edit before sending
+  // When recording ends, populate input and auto-send after 2 s
   useEffect(() => {
     if (status === 'idle') {
-      if (transcript) setInputText(transcript);
+      if (transcript) {
+        setInputText(transcript);
+        clearAutoSendTimer();
+        autoSendTimerRef.current = setTimeout(() => {
+          autoSendTimerRef.current = null;
+          const text = inputTextRef.current.trim();
+          if (text) {
+            setInputText('');
+            onSendText(text);
+          }
+        }, 2000);
+      }
     } else if (status === 'processing') {
+      clearAutoSendTimer();
       setInputText('');
     }
-  }, [status, transcript]);
+    return clearAutoSendTimer;
+  }, [status, transcript, onSendText]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationHistory, lastAssistantMessage]);
 
   const handleSend = () => {
+    clearAutoSendTimer();
     const text = inputText.trim();
     if (!text || status === 'processing') return;
     setInputText('');
@@ -241,6 +269,7 @@ const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
             <TextInput
               id="agent-text-input"
               data-testid="agent-text-input"
+              autoComplete="off"
               labelText=""
               hideLabel
               placeholder={
@@ -252,7 +281,10 @@ const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
               }
               value={inputText}
               onChange={(e) => {
-                if (!isListening) setInputText(e.target.value);
+                if (!isListening) {
+                  clearAutoSendTimer();
+                  setInputText(e.target.value);
+                }
               }}
               onKeyDown={(e: React.KeyboardEvent) => {
                 if (e.key === 'Enter' && !isListening) handleSend();
