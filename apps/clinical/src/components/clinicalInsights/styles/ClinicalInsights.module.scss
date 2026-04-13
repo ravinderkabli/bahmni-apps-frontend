@@ -1,0 +1,386 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/colors' as *;
+@use '@carbon/react/scss/type' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/breakpoint' as *;
+
+// ── Bahmni classic palette ───────────────────────────────────────────────────
+$bahmni-teal: #669999;
+$bahmni-teal-dark: #527a7a;
+$bahmni-teal-darker: #00473f;
+$bahmni-blue: #0e74af;
+$bahmni-blue-dark: #0a5580;
+$bahmni-green: #88af28;
+$bahmni-green-light: #8db529;
+$bahmni-bg: #fafafa;
+$bahmni-card-bg: #fff;
+$bahmni-border: #ddd;
+$bahmni-text: #333;
+$bahmni-text-secondary: #666;
+$bahmni-text-light: #999;
+$bahmni-red: #da1e28;
+$bahmni-orange: #e8a000;
+
+// ── Outer wrapper — matches DashboardContainer spacing ───────────────────────
+
+.wrapper {
+  padding-inline: $spacing-06;
+  padding-top: $spacing-06;
+}
+
+@include breakpoint-down(lg) {
+  .wrapper {
+    padding-inline: calc($spacing-01 + $spacing-02);
+  }
+}
+
+// ── Card — classic Bahmni section look ──────────────────────────────────────
+
+.card {
+  background-color: $bahmni-card-bg;
+  border: 1px solid $bahmni-teal;
+  border-radius: 5px 5px 0 0;
+  overflow: hidden;
+}
+
+// ── Header bar — teal Bahmni section header ─────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  background-color: $bahmni-teal;
+  color: #fff;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.title {
+  @include type-style('heading-compact-02');
+  color: #fff;
+  margin: 0;
+}
+
+.aiBadge {
+  @include type-style('label-01');
+  color: $bahmni-teal-darker;
+  background-color: #fff;
+  border-radius: 1rem;
+  padding: $spacing-01 $spacing-03;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+// ── Body ─────────────────────────────────────────────────────────────────────
+
+.body {
+  padding: $spacing-05 $spacing-05 $spacing-06;
+  background-color: $bahmni-card-bg;
+}
+
+// ── Empty state — before insights are generated ──────────────────────────────
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-04;
+  padding: $spacing-07 $spacing-05;
+  text-align: center;
+}
+
+.emptyStateIcon {
+  font-size: 2rem;
+  color: $bahmni-teal;
+}
+
+.emptyStateText {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  max-width: 28rem;
+}
+
+// ── Loading / progress ───────────────────────────────────────────────────────
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-04;
+  padding: $spacing-06 $spacing-05;
+}
+
+.progressMessage {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+}
+
+.errorNotification {
+  margin-bottom: $spacing-05;
+}
+
+// ── Status Summary ───────────────────────────────────────────────────────────
+
+.summaryBlock {
+  margin-bottom: $spacing-06;
+}
+
+.overallAssessment {
+  @include type-style('body-long-01');
+  color: $bahmni-text;
+  margin: 0 0 $spacing-05;
+  padding: $spacing-05;
+  background-color: #edf5ff;
+  border-left: 4px solid $bahmni-teal;
+  border-radius: 0 3px 3px 0;
+  line-height: 1.6;
+}
+
+.indicatorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: $spacing-04;
+}
+
+.indicator {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  padding: $spacing-04;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  border-top: 3px solid transparent;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.12);
+  }
+}
+
+.indicatorName {
+  @include type-style('label-01');
+  color: $bahmni-text-secondary;
+}
+
+.indicatorValue {
+  @include type-style('heading-compact-01');
+  color: $bahmni-text;
+}
+
+.indicatorTarget {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+}
+
+.statusGreen {
+  border-top-color: $bahmni-green;
+}
+
+.statusYellow {
+  border-top-color: $bahmni-orange;
+}
+
+.statusRed {
+  border-top-color: $bahmni-red;
+}
+
+// ── Section labels — teal underline like classic Bahmni ──────────────────────
+
+.sectionLabel {
+  @include type-style('heading-compact-01');
+  color: $bahmni-teal-dark;
+  margin-bottom: $spacing-04;
+  padding-bottom: $spacing-02;
+  border-bottom: 2px solid $bahmni-teal;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+}
+
+// ── Recommendations ──────────────────────────────────────────────────────────
+
+.recommendationList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  margin-bottom: $spacing-06;
+}
+
+.recommendationCard {
+  padding: $spacing-05;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  border-left: 4px solid $bahmni-teal;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.12);
+  }
+}
+
+.priorityHigh {
+  border-left-color: $bahmni-red;
+  background-color: #ffd6d8;
+}
+
+.priorityMedium {
+  border-left-color: $bahmni-orange;
+  background-color: #fcf4d6;
+}
+
+.priorityLow {
+  border-left-color: $bahmni-green;
+  background-color: #f2f8e8;
+}
+
+.recHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-04;
+  margin-bottom: $spacing-03;
+}
+
+.recHeadline {
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+  font-weight: 600;
+  flex: 1;
+}
+
+.recMeta {
+  display: flex;
+  gap: $spacing-02;
+  flex-shrink: 0;
+}
+
+.recReasoning {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  line-height: 1.5;
+}
+
+.recGuideline {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+  margin-top: $spacing-03;
+  font-style: italic;
+}
+
+// ── Data Gaps ────────────────────────────────────────────────────────────────
+
+.dataGapList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  margin-bottom: $spacing-06;
+}
+
+.dataGapCard {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  padding: $spacing-04 $spacing-05;
+  background-color: #feead6;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  border-left: 4px solid $bahmni-orange;
+}
+
+.gapElement {
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+  font-weight: 600;
+}
+
+.gapSuggestion {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  line-height: 1.5;
+}
+
+.gapFrequency {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+}
+
+// ── Disclaimer ───────────────────────────────────────────────────────────────
+
+.disclaimer {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+  font-style: italic;
+  margin-bottom: $spacing-05;
+  padding: $spacing-04;
+  background-color: #fffad8;
+  border-radius: 3px;
+  border: 1px solid #eaeab4;
+  text-align: center;
+}
+
+// ── Ask Questions ────────────────────────────────────────────────────────────
+
+.askQuestionsSection {
+  border-top: 2px solid $bahmni-teal;
+  padding-top: $spacing-05;
+  margin-top: $spacing-04;
+}
+
+.askQuestionsTitle {
+  @include type-style('heading-compact-01');
+  color: $bahmni-teal-dark;
+  margin-bottom: $spacing-04;
+}
+
+.chatHistory {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  margin-bottom: $spacing-05;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: $spacing-03;
+  scrollbar-width: thin;
+}
+
+.chatMessageUser {
+  padding: $spacing-03 $spacing-05;
+  background-color: #d5f5ff;
+  border: 1px solid #cceffc;
+  border-radius: 5px 5px 0 5px;
+  align-self: flex-end;
+  max-width: 80%;
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+}
+
+.chatMessageAssistant {
+  padding: $spacing-04 $spacing-05;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-left: 3px solid $bahmni-teal;
+  border-radius: 0 5px 5px 0;
+  max-width: 95%;
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.chatInputRow {
+  display: flex;
+  gap: $spacing-03;
+  align-items: flex-end;
+}
+
+.chatInput {
+  flex: 1;
+}

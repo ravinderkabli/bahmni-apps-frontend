@@ -1,5 +1,6 @@
-import React from 'react';
+import { ChevronDown, ChevronUp } from '@carbon/icons-react';
 import { Button } from '@carbon/react';
+import React, { useState } from 'react';
 import { useAgentStore } from '../../stores/agentStore';
 import styles from './RecordingPopup.module.scss';
 
@@ -8,10 +9,18 @@ import styles from './RecordingPopup.module.scss';
  * - Live interim transcript while listening (tap mic to send immediately)
  * - Submit / Continue choice after silence is detected
  * - "Processing…" while Claude is thinking
+ *
+ * Includes a minimize button to collapse to a slim header bar.
  */
 const RecordingPopup: React.FC = () => {
-  const { status, transcript, interimTranscript, onConfirmSubmit, onConfirmContinue } =
-    useAgentStore();
+  const {
+    status,
+    transcript,
+    interimTranscript,
+    onConfirmSubmit,
+    onConfirmContinue,
+  } = useAgentStore();
+  const [minimized, setMinimized] = useState(false);
 
   const isVisible =
     status === 'listening' ||
@@ -19,6 +28,13 @@ const RecordingPopup: React.FC = () => {
     status === 'processing';
 
   if (!isVisible) return null;
+
+  const statusLabel =
+    status === 'listening'
+      ? 'Listening…'
+      : status === 'confirming'
+        ? 'Review'
+        : 'Processing…';
 
   const renderContent = () => {
     if (status === 'listening') {
@@ -42,7 +58,8 @@ const RecordingPopup: React.FC = () => {
                 )}
                 {interimTranscript && (
                   <span className={styles.interimText}>
-                    {transcript ? ' ' : ''}{interimTranscript}
+                    {transcript ? ' ' : ''}
+                    {interimTranscript}
                   </span>
                 )}
               </>
@@ -58,9 +75,7 @@ const RecordingPopup: React.FC = () => {
     if (status === 'confirming') {
       return (
         <div className={styles.confirmingContent}>
-          <p className={styles.confirmedTranscript}>
-            {transcript}
-          </p>
+          <p className={styles.confirmedTranscript}>{transcript}</p>
           <p className={styles.tapHint}>Tap mic to submit</p>
           <div className={styles.confirmActions}>
             <Button
@@ -98,13 +113,39 @@ const RecordingPopup: React.FC = () => {
 
   return (
     <div
-      className={styles.popup}
+      className={`${styles.popup} ${minimized ? styles.popupMinimized : ''}`}
       data-status={status}
       data-testid="agent-recording-popup"
       role="status"
       aria-live="polite"
     >
-      {renderContent()}
+      {/* Header bar — always visible */}
+      <div className={styles.popupHeader}>
+        <div className={styles.popupHeaderLabel}>
+          {status === 'listening' && (
+            <div className={styles.bars}>
+              <span className={styles.bar} />
+              <span className={styles.bar} />
+              <span className={styles.bar} />
+              <span className={styles.bar} />
+            </div>
+          )}
+          {status === 'processing' && <span className={styles.spinner} />}
+          <span className={styles.hint}>{statusLabel}</span>
+        </div>
+        <button
+          className={styles.minimizeBtn}
+          onClick={() => setMinimized((prev) => !prev)}
+          aria-label={minimized ? 'Expand popup' : 'Minimize popup'}
+          title={minimized ? 'Expand' : 'Minimize'}
+          type="button"
+        >
+          {minimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+      </div>
+
+      {/* Body — hidden when minimized */}
+      {!minimized && <div className={styles.popupBody}>{renderContent()}</div>}
     </div>
   );
 };

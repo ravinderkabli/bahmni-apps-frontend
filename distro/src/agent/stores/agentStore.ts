@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { AGENT_API_KEY_SESSION_STORAGE_KEY } from '../constants/agentConstants';
 import {
   AgentObservation,
   AgentStatus,
@@ -6,7 +7,6 @@ import {
   ConversationMessage,
   SupportedLanguage,
 } from '../types/agentTypes';
-import { AGENT_API_KEY_SESSION_STORAGE_KEY } from '../constants/agentConstants';
 
 export interface AgentState {
   status: AgentStatus;
@@ -57,6 +57,23 @@ export interface AgentState {
 const readApiKeyFromStorage = (): string | null => {
   try {
     return sessionStorage.getItem(AGENT_API_KEY_SESSION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Fetch the API key from the local ai-config.json file (served by dev server).
+ * If found, persist to sessionStorage so the rest of the app picks it up.
+ */
+const loadApiKeyFromConfig = async (): Promise<string | null> => {
+  try {
+    const res = await fetch('/ai-config');
+    if (!res.ok) return null;
+    const data = (await res.json()) as { anthropicApiKey?: string | null };
+    const key = data.anthropicApiKey;
+    if (key && key !== 'PASTE_YOUR_KEY_HERE') return key;
+    return null;
   } catch {
     return null;
   }
@@ -160,5 +177,16 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       status: 'idle',
     }),
 }));
+
+// Auto-load API key from ai-config.json on startup (no user prompt needed for demo)
+loadApiKeyFromConfig().then((key) => {
+  if (key) {
+    const store = useAgentStore.getState();
+    // Only set if no key is already stored (don't overwrite manual entry)
+    if (!store.apiKey) {
+      store.setApiKey(key);
+    }
+  }
+});
 
 export default useAgentStore;

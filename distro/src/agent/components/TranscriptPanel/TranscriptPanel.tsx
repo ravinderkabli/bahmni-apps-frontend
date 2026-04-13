@@ -56,6 +56,14 @@ const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
     inputTextRef.current = inputText;
   }, [inputText]);
 
+  // Clear stale transcript on mount so the text box starts empty
+  useEffect(() => {
+    if (status === 'idle' && transcript) {
+      useAgentStore.getState().setTranscript('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Mirror live transcript into the text input while recording
   useEffect(() => {
     if (status === 'listening') {

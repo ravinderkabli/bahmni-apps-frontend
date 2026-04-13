@@ -3,17 +3,22 @@
 @use "@carbon/react/scss/type" as *;
 @use "@carbon/react/scss/theme" as *;
 
+$bahmni-teal: #669999;
+
 .box {
   padding: 0 !important;
-  border: 1px solid $border-subtle-02;
+  border: 1px solid $bahmni-teal;
+  border-radius: 5px 5px 0 0;
   background-color: $background !important;
   overflow: hidden;
 }
 
 .header {
   @include type-style("body-compact-01");
-  background-color: $layer-01;
-  border-bottom: 1px solid $border-subtle-02;
+  background-color: $bahmni-teal;
+  color: #fff;
+  font-weight: 600;
+  border-bottom: 1px solid $bahmni-teal;
   padding-left: $spacing-04 !important;
   margin: 0 !important;
   height: $spacing-07;

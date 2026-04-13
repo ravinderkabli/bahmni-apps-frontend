@@ -1,3 +1,71 @@
 @use "@bahmni/clinical-app/styles" as clinical;
 @use "@bahmni/registration-app/styles" as registration;
 @use "@bahmni/appointments-app/styles" as appointments;
+
+// ── Bahmni Classic Theme — CSS custom property overrides ────────────────────
+// Must load AFTER Carbon styles to take precedence.
+
+:root {
+  // Primary button — Bahmni green
+  --cds-button-primary: #8eb82a;
+  --cds-button-primary-hover: #7aa324;
+  --cds-button-primary-active: #6a8e1f;
+
+  // Secondary button
+  --cds-button-secondary: #527a7a;
+  --cds-button-secondary-hover: #4a6e6e;
+  --cds-button-secondary-active: #3d5c5c;
+
+  // Tertiary button
+  --cds-button-tertiary: #8eb82a;
+  --cds-button-tertiary-hover: #8eb82a;
+  --cds-button-tertiary-active: #7aa324;
+
+  // Interactive / links / focus
+  --cds-interactive: #669999;
+  --cds-link-primary: #527a7a;
+  --cds-link-primary-hover: #4a6e6e;
+  --cds-focus: #669999;
+
+  // Top navigation header
+  --cds-background-brand: #00473f;
+
+  // Tags
+  --cds-tag-background-blue: #d9eded;
+  --cds-tag-color-blue: #4a6e6e;
+  --cds-tag-hover-blue: #c5dede;
+
+  // Toggle / checkbox
+  --cds-toggle-off: #669999;
+  --cds-support-info: #669999;
+}
+
+// ── Direct class overrides (for elements not using CSS custom properties) ───
+
+.cds--header {
+  background-color: #00473f !important;
+  border-bottom-color: #527a7a !important;
+}
+
+.cds--header__action:hover,
+.cds--header__menu-trigger:hover {
+  background-color: #527a7a !important;
+}
+
+.cds--side-nav__link--current,
+.cds--side-nav__link[aria-current='page'] {
+  border-inline-start-color: #669999 !important;
+}
+
+.cds--tabs .cds--tabs__nav-item--selected .cds--tabs__nav-link {
+  border-block-end-color: #669999 !important;
+}
+
+.cds--inline-loading__animation .cds--loading__stroke {
+  stroke: #669999 !important;
+}
+
+.cds--checkbox:checked + .cds--checkbox-label::before {
+  background-color: #669999 !important;
+  border-color: #669999 !important;
+}

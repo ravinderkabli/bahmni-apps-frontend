@@ -1,0 +1,77 @@
+/* ── Bahmni Classic Theme Overrides ──────────────────────────────────────────
+   Overrides Carbon's CSS custom properties with Bahmni's classic teal palette.
+   Loaded after @carbon/styles/css/styles.css to take precedence.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Primary button — Bahmni green ────────────────────────── */
+  --cds-button-primary: #8eb82a;
+  --cds-button-primary-hover: #7aa324;
+  --cds-button-primary-active: #6a8e1f;
+
+  /* ── Secondary button ───────────────────────────────────── */
+  --cds-button-secondary: #527a7a;
+  --cds-button-secondary-hover: #4a6e6e;
+  --cds-button-secondary-active: #3d5c5c;
+
+  /* ── Tertiary button ────────────────────────────────────── */
+  --cds-button-tertiary: #8eb82a;
+  --cds-button-tertiary-hover: #8eb82a;
+  --cds-button-tertiary-active: #7aa324;
+
+  /* ── Interactive / links ────────────────────────────────── */
+  --cds-interactive: #669999;
+  --cds-link-primary: #527a7a;
+  --cds-link-primary-hover: #4a6e6e;
+
+  /* ── Focus ──────────────────────────────────────────────── */
+  --cds-focus: #669999;
+
+  /* ── Top navigation header ──────────────────────────────── */
+  --cds-background-brand: #00473f;
+
+  /* ── Tag blue ───────────────────────────────────────────── */
+  --cds-tag-background-blue: #d9eded;
+  --cds-tag-color-blue: #4a6e6e;
+  --cds-tag-hover-blue: #c5dede;
+
+  /* ── Toggle / checkbox ──────────────────────────────────── */
+  --cds-toggle-off: #669999;
+  --cds-support-info: #669999;
+}
+
+/* ── Header: override the inline background-color ────────────────────────── */
+.cds--header {
+  background-color: #00473f !important;
+  border-bottom-color: #527a7a !important;
+}
+
+.cds--header__action:hover {
+  background-color: #527a7a !important;
+}
+
+.cds--header__menu-trigger:hover {
+  background-color: #527a7a !important;
+}
+
+/* ── Side nav active indicator ───────────────────────────────────────────── */
+.cds--side-nav__link--current,
+.cds--side-nav__link[aria-current='page'] {
+  border-inline-start-color: #669999 !important;
+}
+
+/* ── Tabs: teal active indicator ─────────────────────────────────────────── */
+.cds--tabs .cds--tabs__nav-item--selected .cds--tabs__nav-link {
+  border-block-end-color: #669999 !important;
+}
+
+/* ── Inline loading spinner ──────────────────────────────────────────────── */
+.cds--inline-loading__animation .cds--loading__stroke {
+  stroke: #669999 !important;
+}
+
+/* ── Checkbox checked ────────────────────────────────────────────────────── */
+.cds--checkbox:checked + .cds--checkbox-label::before {
+  background-color: #669999 !important;
+  border-color: #669999 !important;
+}

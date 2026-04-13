@@ -20,6 +20,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import ClinicalInsights from '../components/clinicalInsights/ClinicalInsights';
 import ConsultationPad from '../components/consultationPad/ConsultationPad';
 import DashboardContainer from '../components/dashboardContainer/DashboardContainer';
 import PatientHeader from '../components/patientHeader/PatientHeader';
@@ -266,6 +267,7 @@ const ConsultationPage: React.FC = () => {
               />
               {renderContextInformation()}
             </div>
+            <ClinicalInsights />
             <DashboardContainer
               sections={filteredDashboardConfig!.sections}
               activeItemId={activeItemId}

@@ -9,13 +9,17 @@
   bottom: calc(3.5rem + #{$spacing-07} + #{$spacing-04});
   right: $spacing-07;
   z-index: 9001;
-  width: 22rem;
+  width: 28rem;
+  min-height: 10rem;
   background-color: $background;
   border: 1px solid $border-subtle-00;
   border-radius: 0.75rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  padding: $spacing-04 $spacing-05;
+  padding: 0;
   animation: slideUp 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   // Arrow pointing down toward the mic button
   &::after {
@@ -30,6 +34,61 @@
     border-bottom: 1px solid $border-subtle-00;
     transform: rotate(45deg);
   }
+}
+
+// Minimized: collapse to header-only
+.popupMinimized {
+  min-height: unset;
+}
+
+// ── Header row (always visible) ─────────────────────────────────────────────
+
+.popupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  border-bottom: 1px solid $border-subtle-00;
+  flex-shrink: 0;
+  background-color: $layer-01;
+}
+
+.popupHeaderLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.minimizeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-secondary;
+  padding: $spacing-02;
+  border-radius: 0.25rem;
+  transition: background-color 70ms ease;
+
+  &:hover {
+    background-color: $layer-hover-01;
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+  }
+}
+
+// ── Body (hidden when minimized) ─────────────────────────────────────────────
+
+.popupBody {
+  padding: $spacing-05 $spacing-06;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 // ── Standby ──────────────────────────────────────────────────────────────────
@@ -59,7 +118,7 @@
 .listeningContent {
   display: flex;
   flex-direction: column;
-  gap: $spacing-03;
+  gap: $spacing-04;
 }
 
 .listeningHeader {
@@ -98,9 +157,9 @@
   @include type-style('body-compact-01');
   margin: 0;
   word-break: break-word;
-  max-height: 4rem;
+  max-height: 10rem;
   overflow-y: auto;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /** Committed (finalized) speech — rendered in primary/black colour */
@@ -138,10 +197,10 @@
   color: $text-primary;
   margin: 0;
   word-break: break-word;
-  max-height: 5rem;
+  max-height: 12rem;
   overflow-y: auto;
-  line-height: 1.4;
-  padding: $spacing-03;
+  line-height: 1.5;
+  padding: $spacing-04;
   background-color: $layer-01;
   border-radius: 4px;
   border-left: 3px solid $blue-60;
@@ -177,7 +236,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 14rem;
+  max-width: 20rem;
 }
 
 // ── Animations ────────────────────────────────────────────────────────────────

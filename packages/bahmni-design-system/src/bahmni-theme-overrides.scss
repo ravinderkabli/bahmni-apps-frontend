@@ -1,0 +1,130 @@
+// ── Bahmni Classic Theme Overrides ──────────────────────────────────────────
+// Overrides Carbon's default blue primary with the classic Bahmni teal palette.
+// Uses doubled selectors (e.g. .cds--btn.cds--btn--primary) for specificity
+// to reliably beat Carbon's compiled CSS.
+
+$bahmni-teal: #669999;
+$bahmni-teal-dark: #527a7a;
+$bahmni-teal-darker: #4a6e6e;
+
+// ── Primary buttons: teal instead of Carbon blue ────────────────────────────
+
+:global {
+  .cds--btn.cds--btn--primary {
+    background-color: $bahmni-teal !important;
+    &:hover {
+      background-color: $bahmni-teal-dark !important;
+    }
+    &:active {
+      background-color: $bahmni-teal-darker !important;
+    }
+    &:focus {
+      border-color: $bahmni-teal-darker;
+      box-shadow: inset 0 0 0 1px $bahmni-teal-darker, inset 0 0 0 2px #fff;
+    }
+  }
+
+  // ── Ghost buttons: teal text ──────────────────────────────────────────────
+
+  .cds--btn.cds--btn--ghost {
+    color: $bahmni-teal-dark !important;
+    &:hover {
+      color: $bahmni-teal-darker !important;
+    }
+    &:active {
+      color: $bahmni-teal-darker !important;
+    }
+  }
+
+  // ── Tertiary buttons: teal outline ────────────────────────────────────────
+
+  .cds--btn.cds--btn--tertiary {
+    color: $bahmni-teal !important;
+    border-color: $bahmni-teal !important;
+    &:hover {
+      background-color: $bahmni-teal !important;
+      color: #fff !important;
+      border-color: $bahmni-teal !important;
+    }
+    &:active {
+      background-color: $bahmni-teal-dark !important;
+      color: #fff !important;
+      border-color: $bahmni-teal-dark !important;
+    }
+    &:focus {
+      border-color: $bahmni-teal-darker;
+      box-shadow: inset 0 0 0 1px $bahmni-teal-darker, inset 0 0 0 2px #fff;
+    }
+  }
+
+  // ── Secondary buttons: teal tint ──────────────────────────────────────────
+
+  .cds--btn.cds--btn--secondary {
+    background-color: $bahmni-teal-dark !important;
+    &:hover {
+      background-color: $bahmni-teal-darker !important;
+    }
+    &:active {
+      background-color: darken($bahmni-teal-darker, 5%) !important;
+    }
+  }
+
+  // ── Links / interactive: teal ─────────────────────────────────────────────
+
+  .cds--link {
+    color: $bahmni-teal-dark !important;
+    &:hover {
+      color: $bahmni-teal-darker !important;
+    }
+  }
+
+  // ── Inline loading: teal spinner ──────────────────────────────────────────
+
+  .cds--inline-loading__animation .cds--loading__stroke {
+    stroke: $bahmni-teal !important;
+  }
+
+  // ── Tabs: teal active indicator ───────────────────────────────────────────
+
+  .cds--tabs .cds--tabs__nav-item--selected .cds--tabs__nav-link {
+    border-block-end-color: $bahmni-teal !important;
+  }
+
+  .cds--tabs .cds--tabs__nav-link:focus {
+    outline-color: $bahmni-teal !important;
+  }
+
+  // ── Tag blue type: teal instead of blue ───────────────────────────────────
+
+  .cds--tag--blue {
+    background-color: #d9eded !important;
+    color: $bahmni-teal-darker !important;
+  }
+
+  // ── Top navigation header: dark teal ──────────────────────────────────────
+
+  .cds--header {
+    background-color: #00473f !important;
+    border-bottom: 1px solid $bahmni-teal-dark !important;
+  }
+
+  .cds--header__action:hover {
+    background-color: $bahmni-teal-dark !important;
+  }
+
+  .cds--side-nav__link--current,
+  .cds--side-nav__link[aria-current='page'] {
+    border-inline-start-color: $bahmni-teal !important;
+  }
+
+  // ── Toggle / checkbox: teal accent ────────────────────────────────────────
+
+  .cds--toggle__switch::before {
+    background-color: $bahmni-teal !important;
+  }
+
+  .cds--checkbox:checked + .cds--checkbox-label::before {
+    background-color: $bahmni-teal !important;
+    border-color: $bahmni-teal !important;
+  }
+}

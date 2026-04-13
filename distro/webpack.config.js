@@ -3,6 +3,7 @@ const { NxReactWebpackPlugin } = require('@nx/react/webpack-plugin');
 const { InjectManifest } = require('workbox-webpack-plugin');
 const webpack = require('webpack');
 const { join } = require('path');
+const fs = require('fs');
 const https = require('https');
 
 module.exports = (env, argv) => {
@@ -39,8 +40,30 @@ module.exports = (env, argv) => {
           secure: false,
           logLevel: 'debug',
         },
+        {
+          context: ['/bahmni-ai'],
+          target: 'http://localhost:8090',
+          pathRewrite: { '^/bahmni-ai': '' },
+          changeOrigin: true,
+          secure: false,
+        },
       ],
       setupMiddlewares: (middlewares, devServer) => {
+        // Serve the local AI config file (contains Anthropic API key for demo)
+        devServer.app.get('/ai-config', (_req, res) => {
+          const configPath = join(__dirname, '..', 'ai-config.json');
+          try {
+            if (fs.existsSync(configPath)) {
+              const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+              res.json(config);
+            } else {
+              res.json({ anthropicApiKey: null });
+            }
+          } catch {
+            res.json({ anthropicApiKey: null });
+          }
+        });
+
         // Custom Anthropic middleware: builds a fresh Node.js HTTPS request
         // with only the required headers — no browser/CORS headers ever reach Anthropic.
         devServer.app.post('/anthropic-proxy/v1/messages', (req, res) => {
