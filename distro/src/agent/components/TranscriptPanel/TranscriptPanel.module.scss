@@ -1,0 +1,373 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/type' as *;
+@use '@carbon/react/scss/colors' as *;
+@use '@carbon/react/scss/theme' as *;
+
+// ── Standby pulse animation ──────────────────────────────────────────────────
+
+@keyframes standbyPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes standbyRingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 162, 164, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(0, 162, 164, 0); }
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(218, 30, 40, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(218, 30, 40, 0); }
+}
+
+.panel {
+  position: fixed;
+  bottom: $spacing-07;
+  right: $spacing-07;
+  z-index: 8999;
+  width: 36rem;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: $background;
+  border: 1px solid $border-subtle-00;
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-04;
+  background-color: $layer-01;
+  border-bottom: 1px solid $border-subtle-00;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+// Teal tint when standby is active
+.headerStandby {
+  background-color: $teal-10;
+  border-bottom-color: $teal-30;
+}
+
+.title {
+  @include type-style('label-01');
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-secondary;
+  padding: $spacing-02;
+  border-radius: 0.25rem;
+  transition: background-color 70ms ease;
+
+  &:hover {
+    background-color: $layer-hover-01;
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+  }
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-04;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+}
+
+.emptyState {
+  @include type-style('body-compact-01');
+  color: $text-placeholder;
+  text-align: center;
+  padding: $spacing-05 0;
+  margin: 0;
+}
+
+.userMessage {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.assistantMessage {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.errorMessage {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.bubble {
+  @include type-style('body-compact-01');
+  max-width: 85%;
+  padding: $spacing-03 $spacing-04;
+  border-radius: 1rem;
+
+  .userMessage & {
+    background-color: $blue-60;
+    color: $white;
+    border-bottom-right-radius: 0.25rem;
+  }
+
+  .assistantMessage & {
+    background-color: $layer-01;
+    color: $text-primary;
+    border: 1px solid $border-subtle-00;
+    border-bottom-left-radius: 0.25rem;
+  }
+
+  .errorMessage & {
+    background-color: $red-10;
+    color: $red-70;
+    border: 1px solid $red-30;
+    border-bottom-left-radius: 0.25rem;
+  }
+}
+
+.interim {
+  opacity: 0.85;
+}
+
+/** Finalized words inside the live interim bubble */
+.finalText {
+  color: $white;
+  font-style: normal;
+}
+
+/** In-flight interim words — lighter/grey while the engine is still deciding */
+.interimText {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+// ── Standby tag pulsing dot ──────────────────────────────────────────────────
+
+.standbyTag {
+  display: inline-flex !important;
+  align-items: center;
+  gap: $spacing-02;
+}
+
+.standbyDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: $teal-50;
+  animation: standbyPulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+// ── Standby toggle button active state ───────────────────────────────────────
+
+.standbyToggleActive {
+  color: $teal-60 !important;
+  background-color: $teal-10 !important;
+}
+
+// ── Standby hero (empty state when standby is armed) ─────────────────────────
+
+.standbyHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-04;
+  padding: $spacing-07 $spacing-05 $spacing-05;
+  text-align: center;
+}
+
+.standbyRing {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background-color: $teal-10;
+  border: 2px solid $teal-30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $teal-60;
+  animation: standbyRingPulse 2.2s ease-in-out infinite;
+}
+
+.standbyHeroTitle {
+  @include type-style('heading-compact-01');
+  color: $teal-70;
+  margin: 0;
+}
+
+.standbyHeroHint {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+  margin: 0;
+
+  strong {
+    color: $teal-60;
+  }
+}
+
+.standbyExamples {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  width: 100%;
+
+  code {
+    @include type-style('code-01');
+    font-size: 0.7rem;
+    background-color: $layer-01;
+    border: 1px solid $border-subtle-00;
+    border-radius: 0.25rem;
+    padding: $spacing-02 $spacing-03;
+    color: $text-secondary;
+    text-align: left;
+    display: block;
+  }
+}
+
+// ── Live streaming transcript box ─────────────────────────────────────────────
+
+.liveTranscriptBox {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  padding: $spacing-03 $spacing-04;
+  background-color: $layer-01;
+  border: 1px solid $border-subtle-00;
+  border-left: 3px solid $red-50;
+  border-radius: 0 0.5rem 0.5rem 0;
+  animation: fadeIn 0.15s ease;
+}
+
+.liveLabel {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+  font-weight: 600;
+}
+
+.liveTranscriptText {
+  @include type-style('body-compact-01');
+  margin: 0;
+  line-height: 1.5;
+  min-height: 1.2em;
+}
+
+// ── Confirming state ─────────────────────────────────────────────────────────
+
+.confirmRow {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  padding: $spacing-03 $spacing-04;
+  background-color: $layer-01;
+  border-radius: 0.5rem;
+  border: 1px solid $border-subtle-00;
+}
+
+.tapHint {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+  margin: 0;
+}
+
+.confirmActions {
+  display: flex;
+  gap: $spacing-03;
+  flex-wrap: wrap;
+}
+
+// ── Text input row ───────────────────────────────────────────────────────────
+
+.inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: $spacing-02;
+  padding: $spacing-03 $spacing-04;
+  border-top: 1px solid $border-subtle-00;
+  flex-shrink: 0;
+  background-color: $background;
+
+  // Let the TextInput expand to fill available space
+  :global(.cds--text-input-wrapper) {
+    flex: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Inline mic button ─────────────────────────────────────────────────────────
+
+.micBtn {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $blue-60;
+  color: $white;
+  transition: background-color 70ms ease, box-shadow 70ms ease;
+  margin-bottom: $spacing-01;
+
+  &:hover:not(:disabled) {
+    background-color: $blue-70;
+  }
+
+  &:disabled {
+    background-color: $gray-40;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+.micBtnActive {
+  background-color: $red-60;
+  animation: micPulse 1.2s ease-in-out infinite;
+
+  &:hover:not(:disabled) {
+    background-color: $red-70;
+  }
+}
+
+// Standby mic button — teal outline style (passive, not alarming)
+.micBtnStandby {
+  background-color: transparent;
+  border: 2px solid $teal-40;
+  color: $teal-60;
+
+  &:hover:not(:disabled) {
+    background-color: $teal-10;
+    border-color: $teal-60;
+  }
+}

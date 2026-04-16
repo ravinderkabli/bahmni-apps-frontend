@@ -40,6 +40,12 @@
       "path": "../apps/clinical/tsconfig.lib.json"
     },
     {
+      "path": "../packages/bahmni-widgets/tsconfig.lib.json"
+    },
+    {
+      "path": "../packages/bahmni-services/tsconfig.lib.json"
+    },
+    {
       "path": "../packages/bahmni-design-system/tsconfig.lib.json"
     }
   ]

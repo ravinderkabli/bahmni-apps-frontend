@@ -1,0 +1,9 @@
+@use '@carbon/react/scss/spacing' as *;
+
+.unsupportedBanner {
+  position: fixed;
+  bottom: calc(3.5rem + #{$spacing-07} + #{$spacing-05});
+  right: $spacing-07;
+  z-index: 8998;
+  width: 28rem;
+}

@@ -3,6 +3,8 @@ const { NxReactWebpackPlugin } = require('@nx/react/webpack-plugin');
 const { InjectManifest } = require('workbox-webpack-plugin');
 const webpack = require('webpack');
 const { join } = require('path');
+const fs = require('fs');
+const https = require('https');
 
 module.exports = (env, argv) => {
   //TODO to read this from docker compose
@@ -25,7 +27,7 @@ module.exports = (env, argv) => {
     },
     devServer: {
       port: 3000,
-      historyApiFallback: {
+historyApiFallback: {
         index: '/bahmni-new/index.html',
         disableDotRule: true,
         htmlAcceptHeaders: ['text/html', 'application/xhtml+xml'],
@@ -38,7 +40,80 @@ module.exports = (env, argv) => {
           secure: false,
           logLevel: 'debug',
         },
+        {
+          context: ['/bahmni-ai'],
+          target: 'http://localhost:8090',
+          pathRewrite: { '^/bahmni-ai': '' },
+          changeOrigin: true,
+          secure: false,
+        },
+        {
+          context: ['/whisper-stt'],
+          target: 'http://localhost:8765',
+          pathRewrite: { '^/whisper-stt': '' },
+          changeOrigin: true,
+          secure: false,
+        },
       ],
+      setupMiddlewares: (middlewares, devServer) => {
+        // Serve the local AI config file (contains Anthropic API key for demo)
+        devServer.app.get('/ai-config', (_req, res) => {
+          const configPath = join(__dirname, '..', 'ai-config.json');
+          try {
+            if (fs.existsSync(configPath)) {
+              const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+              res.json(config);
+            } else {
+              res.json({ anthropicApiKey: null });
+            }
+          } catch {
+            res.json({ anthropicApiKey: null });
+          }
+        });
+
+        // Custom Anthropic middleware: builds a fresh Node.js HTTPS request
+        // with only the required headers — no browser/CORS headers ever reach Anthropic.
+        devServer.app.post('/anthropic-proxy/v1/messages', (req, res) => {
+          let body = '';
+          req.on('data', (chunk) => { body += chunk; });
+          req.on('end', () => {
+            const apiKey = req.headers['x-api-key'];
+            const anthropicVersion = req.headers['anthropic-version'] || '2023-06-01';
+
+            console.log(`[anthropic-proxy] → POST /v1/messages  key=${String(apiKey).slice(0, 12)}...`);
+
+            const options = {
+              hostname: 'api.anthropic.com',
+              port: 443,
+              path: '/v1/messages',
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': anthropicVersion,
+                'content-length': Buffer.byteLength(body),
+              },
+            };
+
+            const anthropicReq = https.request(options, (anthropicRes) => {
+              console.log(`[anthropic-proxy] ← ${anthropicRes.statusCode}`);
+              res.statusCode = anthropicRes.statusCode;
+              res.setHeader('content-type', 'application/json');
+              anthropicRes.pipe(res);
+            });
+
+            anthropicReq.on('error', (err) => {
+              console.error('[anthropic-proxy] Request error:', err.message);
+              res.statusCode = 502;
+              res.end(JSON.stringify({ error: { type: 'proxy_error', message: err.message } }));
+            });
+
+            anthropicReq.write(body);
+            anthropicReq.end();
+          });
+        });
+        return middlewares;
+      },
     },
     plugins: [
       new webpack.DefinePlugin({

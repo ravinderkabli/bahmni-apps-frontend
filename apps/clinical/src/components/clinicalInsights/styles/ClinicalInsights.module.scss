@@ -1,0 +1,985 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/colors' as *;
+@use '@carbon/react/scss/type' as *;
+@use '@carbon/react/scss/theme' as *;
+@use '@carbon/react/scss/breakpoint' as *;
+
+// ── Bahmni classic palette ───────────────────────────────────────────────────
+$bahmni-teal: #669999;
+$bahmni-teal-dark: #527a7a;
+$bahmni-teal-darker: #00473f;
+$bahmni-blue: #0e74af;
+$bahmni-blue-dark: #0a5580;
+$bahmni-green: #88af28;
+$bahmni-green-light: #8db529;
+$bahmni-bg: #fafafa;
+$bahmni-card-bg: #fff;
+$bahmni-border: #ddd;
+$bahmni-text: #333;
+$bahmni-text-secondary: #666;
+$bahmni-text-light: #999;
+$bahmni-red: #da1e28;
+$bahmni-orange: #e8a000;
+
+// ── Outer wrapper — matches DashboardContainer spacing ───────────────────────
+
+.wrapper {
+  padding-inline: $spacing-06;
+  padding-top: $spacing-06;
+}
+
+// When rendered inside the patient header modal, no outer padding needed
+.wrapperInModal {
+  padding: 0;
+}
+
+@include breakpoint-down(lg) {
+  .wrapper {
+    padding-inline: calc($spacing-01 + $spacing-02);
+  }
+}
+
+// ── Card — classic Bahmni section look ──────────────────────────────────────
+
+.card {
+  background-color: $bahmni-card-bg;
+  border: 1px solid $bahmni-teal;
+  border-radius: 5px 5px 0 0;
+  overflow-x: hidden;
+  max-height: 28rem;
+  display: flex;
+  flex-direction: column;
+}
+
+// Inside the patient header modal: fill available height, no border (modal provides chrome)
+.cardInModal {
+  border: none;
+  border-radius: 0;
+  max-height: none;
+  flex: 1;
+}
+
+// ── Header bar — teal Bahmni section header ─────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-03 $spacing-05;
+  background-color: $bahmni-teal;
+  color: #fff;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.title {
+  @include type-style('heading-compact-02');
+  color: #fff;
+  margin: 0;
+}
+
+.aiBadge {
+  @include type-style('label-01');
+  color: $bahmni-teal-darker;
+  background-color: #fff;
+  border-radius: 1rem;
+  padding: $spacing-01 $spacing-03;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+// ── Specialty selector ───────────────────────────────────────────────────────
+
+.specialtyGroup {
+  display: flex;
+  gap: $spacing-02;
+  margin-left: $spacing-04;
+}
+
+.specialtyBtn {
+  @include type-style('label-01');
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 1rem;
+  padding: $spacing-01 $spacing-04;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.specialtyBtnActive {
+  background: #fff;
+  color: $bahmni-teal-dark;
+  border-color: #fff;
+  font-weight: 600;
+}
+
+// ── Body ─────────────────────────────────────────────────────────────────────
+
+.body {
+  padding: $spacing-05 $spacing-05 $spacing-06;
+  background-color: $bahmni-card-bg;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+}
+
+// ── Scroll-more indicator ────────────────────────────────────────────────────
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.scrollMoreBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-02;
+  width: 100%;
+  padding: $spacing-02 $spacing-04 $spacing-03;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.96) 30%,
+    #fff 100%
+  );
+  border: none;
+  border-top: 1px solid transparent;
+  cursor: pointer;
+  color: $bahmni-teal-dark;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: $spacing-02;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4.5rem;
+    height: 1.5rem;
+    background: rgba($bahmni-teal, 0.08);
+    border: 1px solid rgba($bahmni-teal, 0.25);
+    border-radius: 1rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  &:hover {
+    color: $bahmni-teal;
+
+    &::before {
+      background: rgba($bahmni-teal, 0.15);
+      border-color: rgba($bahmni-teal, 0.5);
+    }
+  }
+}
+
+.scrollMoreChevron {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  animation: bounce 1.6s ease-in-out infinite;
+}
+
+.scrollMoreLabel {
+  @include type-style('label-01');
+  position: relative;
+  z-index: 1;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+// ── Empty state — before insights are generated ──────────────────────────────
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-04;
+  padding: $spacing-07 $spacing-05;
+  text-align: center;
+}
+
+.emptyStateIcon {
+  font-size: 2rem;
+  color: $bahmni-teal;
+}
+
+.emptyStateText {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  max-width: 28rem;
+}
+
+.selectedSpecialtyLabel {
+  @include type-style('label-01');
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1rem;
+  padding: $spacing-01 $spacing-03;
+}
+
+.specialtyCards {
+  display: flex;
+  gap: $spacing-04;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: $spacing-05 0;
+}
+
+.specialtyCard {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: $spacing-04 $spacing-06;
+  background: $bahmni-card-bg;
+  border: 2px solid $bahmni-border;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 12rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $bahmni-teal;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.specialtyCardSelected {
+  border-color: $bahmni-teal;
+  background: #edf5ff;
+}
+
+.specialtyCardCheck {
+  color: $bahmni-teal;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.specialtyCardName {
+  @include type-style('body-compact-01');
+  font-weight: 600;
+  color: $bahmni-text;
+  text-transform: capitalize;
+}
+
+// ── Loading / progress ───────────────────────────────────────────────────────
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  padding: $spacing-05;
+}
+
+.stageSteps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-02;
+}
+
+.stageConnector {
+  width: $spacing-04;
+  height: 1px;
+  background: $bahmni-border;
+  flex-shrink: 0;
+}
+
+@keyframes pillFill {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.stagePill {
+  @include type-style('label-01');
+  position: relative;
+  overflow: hidden;
+  padding: $spacing-01 $spacing-03;
+  border-radius: 1rem;
+  border: 1px solid $bahmni-border;
+  background: #f4f4f4;
+  color: $bahmni-text-secondary;
+  white-space: nowrap;
+}
+
+.stageActive {
+  background: linear-gradient(
+    90deg,
+    $bahmni-teal-dark 0%,
+    $bahmni-teal 50%,
+    rgba($bahmni-teal, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: pillFill 2s ease-out forwards;
+  border-color: $bahmni-teal;
+  color: #fff;
+  font-weight: 600;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.45),
+      transparent
+    );
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+.stageDone {
+  background: $bahmni-green;
+  border-color: $bahmni-green;
+  color: #fff;
+}
+
+.stagePending {
+  opacity: 0.5;
+}
+
+.progressBarTrack {
+  :global(.cds--progress-bar__bar) {
+    transition: width 1.2s ease-out;
+    background: linear-gradient(90deg, $bahmni-teal, $bahmni-green);
+  }
+}
+
+.progressMsg {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-secondary;
+  font-style: italic;
+  margin: 0;
+}
+
+.errorNotification {
+  margin-bottom: $spacing-05;
+}
+
+// ── Status Summary ───────────────────────────────────────────────────────────
+
+.summaryBlock {
+  margin-bottom: $spacing-06;
+}
+
+.overallAssessment {
+  @include type-style('body-long-01');
+  color: $bahmni-text;
+  margin: 0 0 $spacing-05;
+  padding: $spacing-05;
+  background-color: #edf5ff;
+  border-left: 4px solid $bahmni-teal;
+  border-radius: 0 3px 3px 0;
+  line-height: 1.6;
+}
+
+.indicatorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: $spacing-04;
+}
+
+.indicator {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  padding: $spacing-04;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  border-top: 3px solid transparent;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.12);
+  }
+}
+
+.indicatorName {
+  @include type-style('label-01');
+  color: $bahmni-text-secondary;
+}
+
+.indicatorValue {
+  @include type-style('heading-compact-01');
+  color: $bahmni-text;
+}
+
+.indicatorTarget {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+}
+
+.statusGreen {
+  border-top-color: $bahmni-green;
+}
+
+.statusYellow {
+  border-top-color: $bahmni-orange;
+}
+
+.statusRed {
+  border-top-color: $bahmni-red;
+}
+
+// ── Section labels — teal underline like classic Bahmni ──────────────────────
+
+.sectionLabel {
+  @include type-style('heading-compact-01');
+  color: $bahmni-teal-dark;
+  margin-bottom: $spacing-04;
+  padding-bottom: $spacing-02;
+  border-bottom: 2px solid $bahmni-teal;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+}
+
+// ── Recommendations ──────────────────────────────────────────────────────────
+
+.recommendationList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  margin-bottom: $spacing-06;
+}
+
+.recommendationCard {
+  padding: $spacing-05;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  border-left: 4px solid $bahmni-teal;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.12);
+  }
+}
+
+.priorityHigh {
+  border-left-color: $bahmni-red;
+  background-color: #ffd6d8;
+}
+
+.priorityMedium {
+  border-left-color: $bahmni-orange;
+  background-color: #fcf4d6;
+}
+
+.priorityLow {
+  border-left-color: $bahmni-green;
+  background-color: #f2f8e8;
+}
+
+.recHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-04;
+  margin-bottom: $spacing-03;
+}
+
+.recHeadline {
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+  font-weight: 600;
+  flex: 1;
+}
+
+.recMeta {
+  display: flex;
+  gap: $spacing-02;
+  flex-shrink: 0;
+}
+
+.recReasoning {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  line-height: 1.5;
+}
+
+.recGuideline {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+  margin-top: $spacing-03;
+  font-style: italic;
+}
+
+// ── Data Gaps ────────────────────────────────────────────────────────────────
+
+.dataGapList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  margin-bottom: $spacing-06;
+}
+
+.dataGapCard {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  padding: $spacing-04 $spacing-05;
+  background-color: #feead6;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  border-left: 4px solid $bahmni-orange;
+}
+
+.gapElement {
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+  font-weight: 600;
+}
+
+.gapSuggestion {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  line-height: 1.5;
+}
+
+.gapFrequency {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+}
+
+// ── Disclaimer ───────────────────────────────────────────────────────────────
+
+.disclaimer {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+  font-style: italic;
+  margin-bottom: $spacing-05;
+  padding: $spacing-04;
+  background-color: #fffad8;
+  border-radius: 3px;
+  border: 1px solid #eaeab4;
+  text-align: center;
+}
+
+// ── Ask Questions ────────────────────────────────────────────────────────────
+
+.askQuestionsSection {
+  border-top: 2px solid $bahmni-teal;
+  padding-top: $spacing-05;
+  margin-top: $spacing-04;
+}
+
+.askQuestionsTitle {
+  @include type-style('heading-compact-01');
+  color: $bahmni-teal-dark;
+  margin-bottom: $spacing-04;
+}
+
+.chatHistory {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  margin-bottom: $spacing-05;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: $spacing-03;
+  scrollbar-width: thin;
+}
+
+.chatMessageUser {
+  padding: $spacing-03 $spacing-05;
+  background-color: #d5f5ff;
+  border: 1px solid #cceffc;
+  border-radius: 5px 5px 0 5px;
+  align-self: flex-end;
+  max-width: 80%;
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+}
+
+.chatMessageAssistant {
+  padding: $spacing-04 $spacing-05;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-left: 3px solid $bahmni-teal;
+  border-radius: 0 5px 5px 0;
+  max-width: 95%;
+  @include type-style('body-compact-01');
+  color: $bahmni-text;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.chatInputRow {
+  display: flex;
+  gap: $spacing-03;
+  align-items: flex-end;
+}
+
+.chatInput {
+  flex: 1;
+}
+
+// ── Run metrics ──────────────────────────────────────────────────────────────
+
+.metricsBar {
+  @include type-style('helper-text-01');
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  padding: $spacing-02 $spacing-04;
+  background-color: $bahmni-bg;
+  border-bottom: 1px solid $bahmni-border;
+  cursor: pointer;
+  color: $bahmni-text-secondary;
+  margin-bottom: $spacing-04;
+  border-radius: 3px;
+  border: 1px solid $bahmni-border;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+}
+
+.metricsBarToggle {
+  @include type-style('label-01');
+  color: $bahmni-text-light;
+  margin-left: auto;
+}
+
+.metricsPanel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-04;
+  margin-bottom: $spacing-04;
+
+  @include breakpoint-down(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.metricBox {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+  padding: $spacing-04;
+  background-color: $bahmni-bg;
+  border: 1px solid $bahmni-border;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.metricValue {
+  @include type-style('heading-compact-02');
+  color: $bahmni-teal-dark;
+  font-weight: 700;
+}
+
+.metricLabel {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-secondary;
+}
+
+// ── KI cards grid ─────────────────────────────────────────────────────────────
+
+.kiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $spacing-03;
+
+  @include breakpoint-down(md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include breakpoint-down(sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.kiCard {
+  padding: $spacing-03 $spacing-04;
+  border-radius: 3px;
+  border: 1px solid $bahmni-border;
+  border-left: 4px solid transparent;
+  min-height: 7rem;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
+}
+
+.kiGreen {
+  border-left-color: #38a169;
+  background: #f0fff4;
+}
+
+.kiYellow {
+  border-left-color: #d69e2e;
+  background: #fffff0;
+}
+
+.kiRed {
+  border-left-color: $bahmni-red;
+  background: #fff5f5;
+}
+
+.kiName {
+  @include type-style('label-01');
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  color: $bahmni-text-secondary;
+}
+
+.kiDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kiDotGreen {
+  background: #38a169;
+}
+
+.kiDotYellow {
+  background: #d69e2e;
+}
+
+.kiDotRed {
+  background: $bahmni-red;
+}
+
+.kiValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.kiValueGreen {
+  color: #276749;
+}
+
+.kiValueYellow {
+  color: #975a16;
+}
+
+.kiValueRed {
+  color: #9b2c2c;
+}
+
+.kiTrend {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-secondary;
+}
+
+.kiTarget {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+
+.tabsContainer {
+  margin-bottom: $spacing-05;
+}
+
+.tabBadge {
+  @include type-style('label-01');
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+}
+
+.highPriorityCount {
+  @include type-style('label-01');
+  color: $bahmni-red;
+  font-weight: 600;
+}
+
+// ── Recommendation accordion ──────────────────────────────────────────────────
+
+.recTitleRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+  flex-wrap: wrap;
+}
+
+.recPriorityBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.recPriorityHigh {
+  background: #fff5f5;
+  color: #9b2c2c;
+  border: 1px solid #e53e3e;
+}
+
+.recPriorityMedium {
+  background: #fffaf0;
+  color: #7b341e;
+  border: 1px solid #dd6b20;
+}
+
+.recPriorityLow {
+  background: #f0fff4;
+  color: #276749;
+  border: 1px solid #38a169;
+}
+
+.recCategoryTag {
+  @include type-style('label-01');
+}
+
+.recHeadlineText {
+  @include type-style('body-compact-01');
+  font-weight: 600;
+  color: $bahmni-text;
+}
+
+.recBody {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+}
+
+.recReasoning {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  line-height: 1.5;
+}
+
+.recContraindication {
+  @include type-style('body-compact-01');
+  color: $bahmni-text-secondary;
+  font-style: italic;
+}
+
+.recSafetyWarning {
+  @include type-style('body-compact-01');
+  color: #975a16;
+}
+
+.recMetaLine {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+  padding-top: $spacing-03;
+  border-top: 1px solid $bahmni-border;
+}
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+
+.feedbackRow {
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+  padding-top: $spacing-03;
+}
+
+.feedbackAccepted {
+  @include type-style('helper-text-01');
+  color: #276749;
+  font-weight: 600;
+}
+
+.feedbackOverrideRecorded {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-secondary;
+}
+
+.overrideForm {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+  padding-top: $spacing-03;
+  border-top: 1px solid $bahmni-border;
+}
+
+.overrideActions {
+  display: flex;
+  gap: $spacing-03;
+}
+
+// ── Data gap accordion ─────────────────────────────────────────────────────────
+
+.gapBody {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+}
+
+.gapLastRecorded {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+}
+
+.noDataGaps {
+  @include type-style('body-compact-01');
+  color: #276749;
+  text-align: center;
+  padding: $spacing-06;
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+.footer {
+  margin-top: $spacing-05;
+  padding-top: $spacing-05;
+  border-top: 1px solid $bahmni-border;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+}
+
+.footerMeta {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-secondary;
+}
+
+.footerGuidelines {
+  @include type-style('helper-text-01');
+  color: $bahmni-text-light;
+  font-style: italic;
+}

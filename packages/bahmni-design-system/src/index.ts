@@ -1,4 +1,5 @@
 import '@carbon/styles/css/styles.css';
+import './bahmni-theme-overrides.css';
 
 export { Close, TrashCan } from '@carbon/icons-react';
 

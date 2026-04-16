@@ -457,6 +457,20 @@ const ConsultationPad: React.FC<ConsultationPadProps> = ({ onClose }) => {
     resetObservationForms();
     onClose();
   };
+
+  // Agent Bahmni: listen for submit event dispatched by the voice agent
+  useEffect(() => {
+    const AGENT_SUBMIT_EVENT = 'agent-submit-consultation';
+    // Signal to the agent's submitConsultationTool that this pad is active
+    window.dispatchEvent(new CustomEvent('agent-consultation-pad-mounted'));
+    window.addEventListener(AGENT_SUBMIT_EVENT, handleOnPrimaryButtonClick);
+    return () => {
+      window.removeEventListener(AGENT_SUBMIT_EVENT, handleOnPrimaryButtonClick);
+      window.dispatchEvent(new CustomEvent('agent-consultation-pad-unmounted'));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const consultationContent = (
     <>
       <BasicForm practitionerState={practitionerState} />

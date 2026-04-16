@@ -1,5 +1,8 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+# Secrets / local config — never commit real API keys
+ai-config.json
+
 # Logs
 logs
 *.log
