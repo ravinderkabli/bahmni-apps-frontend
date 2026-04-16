@@ -118,7 +118,7 @@ This branch adds a voice-driven AI assistant that lets clinical staff register p
 
 #### 1. Add your Anthropic API key
 
-Create `ai-config.json` in the project root (already gitignored after the key was removed):
+Open `ai-config.json` in the project root and replace the placeholder with your key:
 
 ```json
 {
