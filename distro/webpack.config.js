@@ -27,7 +27,7 @@ module.exports = (env, argv) => {
     },
     devServer: {
       port: 3000,
-      historyApiFallback: {
+historyApiFallback: {
         index: '/bahmni-new/index.html',
         disableDotRule: true,
         htmlAcceptHeaders: ['text/html', 'application/xhtml+xml'],
@@ -44,6 +44,13 @@ module.exports = (env, argv) => {
           context: ['/bahmni-ai'],
           target: 'http://localhost:8090',
           pathRewrite: { '^/bahmni-ai': '' },
+          changeOrigin: true,
+          secure: false,
+        },
+        {
+          context: ['/whisper-stt'],
+          target: 'http://localhost:8765',
+          pathRewrite: { '^/whisper-stt': '' },
           changeOrigin: true,
           secure: false,
         },

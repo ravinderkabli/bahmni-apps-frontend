@@ -5,11 +5,10 @@ import TranscriptPanel from './TranscriptPanel/TranscriptPanel';
 
 /**
  * Root Agent Bahmni component — mounted once in App.tsx.
- * Renders the floating mic button, always-visible chat panel, and API key modal.
- * The floating RecordingPopup has been merged into TranscriptPanel.
+ * Renders the floating chat panel and API key modal.
  */
 const AgentBahmni: React.FC = () => {
-  const { isSupported, toggleListening, sendTextCommand } =
+  const { isSupported, toggleListening, sendTextCommand, toggleStandby } =
     useAgentOrchestrator();
 
   return (
@@ -17,6 +16,7 @@ const AgentBahmni: React.FC = () => {
       <TranscriptPanel
         onSendText={sendTextCommand}
         onToggleMic={toggleListening}
+        onToggleStandby={toggleStandby}
         isSTTSupported={isSupported}
       />
 

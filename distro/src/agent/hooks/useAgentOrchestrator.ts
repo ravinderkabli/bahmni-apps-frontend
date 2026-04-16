@@ -6,43 +6,73 @@ import {
   isSTTSupported,
   SpeechService,
 } from '../services/sttService';
+import {
+  createWakeWordService,
+  WakeWordService,
+} from '../services/wakeWordService';
 import { useAgentStore } from '../stores/agentStore';
 import { ToolUseContentBlock } from '../types/agentTypes';
 import { AGENT_TOOLS } from '../types/toolSchemas';
 import { useToolExecutor } from './useToolExecutor';
 
 /**
- * Core orchestration loop (no wake word — mic click only):
+ * Core orchestration — state machine:
  *
- * [idle]
- *     ↓ click mic
- * [listening] full STT session — accumulates transcript; 1.5s silence → confirming
- *     ↓ final transcript (tap mic OR silence + submit)
- * [processing] Claude Sonnet multi-turn tool-calling loop
- *     ↓ end_turn
- * [idle] ready for next click
+ *  STANDBY (wake word passive listening)
+ *    ↓ "Hey Bahmni" detected
+ *  STARTING → LISTENING (main STT active)
+ *    ↓ 1.5 s silence → CONFIRMING  OR  mic tap → stopAndSend
+ *  PROCESSING (Claude multi-turn tool loop)
+ *    ↓ end_turn
+ *  STANDBY  (if standby mode on)  OR  IDLE  (if standby off)
  *
- * The mic button:
- *  idle      → click → listening (STT starts)
- *  listening → click → stopAndSend (fire onFinal immediately)
- *  confirming→ click → confirmSend (submit)
- *  anything else → turn off → idle
+ *  Manual path (mic click):
+ *  IDLE → STARTING → LISTENING → CONFIRMING/PROCESSING → IDLE
  */
 export const useAgentOrchestrator = () => {
   const { executeTool } = useToolExecutor();
 
   const mainSttRef = useRef<SpeechService | null>(null);
+  const wakeWordSvcRef = useRef<WakeWordService | null>(null);
   const isProcessingRef = useRef(false);
   const isSupported = isSTTSupported();
 
-  // ─── Claude loop ──────────────────────────────────────────────────────────
+  // Forward refs to break circular dependencies between callbacks
+  const callClaudeLoopRef = useRef<() => Promise<void>>(async () => {});
+  const handleWakeWordRef = useRef<(cmd: string) => void>(() => {});
+
+  // ─── Return to standby or idle after a session completes ─────────────────
+
+  const returnToBaseState = useCallback(() => {
+    const { isStandbyMode } = useAgentStore.getState();
+    if (isStandbyMode) {
+      // Re-arm wake word detection
+      wakeWordSvcRef.current?.abort();
+      wakeWordSvcRef.current = null;
+      const svc = createWakeWordService(
+        (cmd) => handleWakeWordRef.current(cmd),
+        () => {
+          /* ignore wake word errors silently */
+        },
+      );
+      const { currentLanguage } = useAgentStore.getState();
+      svc.setLanguage(currentLanguage);
+      svc.start();
+      wakeWordSvcRef.current = svc;
+      useAgentStore.getState().setStatus('standby');
+    } else {
+      useAgentStore.getState().setStatus('idle');
+    }
+  }, []);
+
+  // ─── Claude multi-turn loop ───────────────────────────────────────────────
 
   const callClaudeLoop = useCallback(async () => {
     const { conversationHistory, apiKey } = useAgentStore.getState();
 
     if (!apiKey) {
       useAgentStore.getState().setApiKeyModalOpen(true);
-      useAgentStore.getState().setStatus('idle');
+      returnToBaseState();
       return;
     }
 
@@ -67,18 +97,15 @@ export const useAgentOrchestrator = () => {
         const toolUseBlocks = response.content.filter(
           (b): b is ToolUseContentBlock => b.type === 'tool_use',
         );
-
         for (const toolBlock of toolUseBlocks) {
           const result = await executeTool(toolBlock);
           useAgentStore
             .getState()
             .appendToolResult(toolBlock.id, JSON.stringify(result));
         }
-
-        await callClaudeLoop();
+        await callClaudeLoopRef.current();
       } else {
-        // Done — return to idle (no wake word to restart)
-        useAgentStore.getState().setStatus('idle');
+        returnToBaseState();
       }
     } catch (err) {
       useAgentStore
@@ -88,78 +115,122 @@ export const useAgentOrchestrator = () => {
             ? err.message
             : 'An error occurred while processing your request',
         );
-      useAgentStore.getState().setStatus('idle');
+      returnToBaseState();
     } finally {
       isProcessingRef.current = false;
     }
-  }, [executeTool]);
+  }, [executeTool, returnToBaseState]);
 
-  // ─── Main STT (full listening session) ───────────────────────────────────
+  callClaudeLoopRef.current = callClaudeLoop;
 
-  const startMainListening = useCallback(() => {
-    const { currentLanguage } = useAgentStore.getState();
+  // ─── Main STT (full listening session, optionally prefixed from wake word) ─
 
-    // Show 'starting' immediately so the mic button gives feedback,
-    // but don't allow stop until capture is actually live (onReady fires).
-    useAgentStore.getState().setStatus('starting');
+  const startMainListening = useCallback(
+    (prefixText = '') => {
+      const { currentLanguage } = useAgentStore.getState();
+      useAgentStore.getState().setStatus('starting');
 
-    mainSttRef.current = createSpeechService(
-      // onInterim — update live transcript: finalText (black) + interimText (grey)
-      (finalText, interimText) => {
-        useAgentStore.getState().setTranscript(finalText);
-        useAgentStore.getState().setInterimTranscript(interimText);
-      },
-      // onFinal — transcript ready; surface in text input for review, don't auto-send
-      (final) => {
-        useAgentStore.getState().setTranscript(final);
-        useAgentStore.getState().setInterimTranscript('');
-        useAgentStore.getState().clearConfirmCallbacks();
-        mainSttRef.current = null;
-        isProcessingRef.current = false;
-        useAgentStore.getState().setStatus('idle');
-      },
-      // onSilence — pause for user to choose Submit or Continue
-      (silentText) => {
-        useAgentStore.getState().setTranscript(silentText);
-        useAgentStore.getState().setInterimTranscript('');
-        useAgentStore.getState().setStatus('confirming');
+      // Pre-populate transcript with any command portion captured by wake word
+      if (prefixText) {
+        useAgentStore.getState().setTranscript(prefixText);
+      }
 
-        useAgentStore.getState().setConfirmCallbacks(
-          // Submit — commit to Claude
-          () => {
-            mainSttRef.current?.confirmSend();
-          },
-          // Continue — resume mic, append more speech
-          () => {
-            useAgentStore.getState().clearConfirmCallbacks();
-            useAgentStore.getState().setStatus('listening');
-            mainSttRef.current?.continueListening();
-          },
-        );
-      },
-      // onError
-      (error) => {
-        if (error === 'no-speech-timeout') {
-          // No command detected — silently go back to idle
+      mainSttRef.current = createSpeechService(
+        // onInterim — live update: committed (black) + interim (grey)
+        (finalText, interimText) => {
+          const combined = prefixText
+            ? `${prefixText} ${finalText}`.trim()
+            : finalText;
+          useAgentStore.getState().setTranscript(combined);
+          useAgentStore.getState().setInterimTranscript(interimText);
+        },
+        // onFinal — STT session complete; surface in input for review
+        (final) => {
+          const combined = prefixText ? `${prefixText} ${final}`.trim() : final;
+          useAgentStore.getState().setTranscript(combined);
+          useAgentStore.getState().setInterimTranscript('');
+          useAgentStore.getState().clearConfirmCallbacks();
+          mainSttRef.current = null;
+          isProcessingRef.current = false;
           useAgentStore.getState().setStatus('idle');
-        } else {
-          useAgentStore
-            .getState()
-            .setError(`Speech recognition error: ${error}`);
-          useAgentStore.getState().setStatus('idle');
-        }
-      },
-      // onReady — audio capture is live; now safe to show stop button
-      () => {
-        useAgentStore.getState().setStatus('listening');
-      },
-    );
+        },
+        // onSilence — pause detected; show Submit / Continue Speaking
+        (silentText) => {
+          const combined = prefixText
+            ? `${prefixText} ${silentText}`.trim()
+            : silentText;
+          useAgentStore.getState().setTranscript(combined);
+          useAgentStore.getState().setInterimTranscript('');
+          useAgentStore.getState().setStatus('confirming');
 
-    mainSttRef.current.setLanguage(currentLanguage);
-    mainSttRef.current.start();
-  }, [callClaudeLoop]);
+          useAgentStore.getState().setConfirmCallbacks(
+            // Submit — commit transcript to Claude
+            () => {
+              mainSttRef.current?.confirmSend();
+            },
+            // Continue speaking — resume mic
+            () => {
+              useAgentStore.getState().clearConfirmCallbacks();
+              useAgentStore.getState().setStatus('listening');
+              mainSttRef.current?.continueListening();
+            },
+          );
+        },
+        // onError
+        (error) => {
+          if (error === 'no-speech-timeout') {
+            returnToBaseState();
+          } else {
+            useAgentStore
+              .getState()
+              .setError(`Speech recognition error: ${error}`);
+            returnToBaseState();
+          }
+        },
+        // onReady — mic is live; now safe to show stop button
+        () => {
+          useAgentStore.getState().setStatus('listening');
+        },
+      );
 
-  // ─── Text command (typed input) ──────────────────────────────────────────
+      mainSttRef.current.setLanguage(currentLanguage);
+      mainSttRef.current.start();
+    },
+    [returnToBaseState],
+  );
+
+  // ─── Wake word handler ─────────────────────────────────────────────────────
+
+  const handleWakeWord = useCallback(
+    (commandPortion: string) => {
+      // Stop wake word service — hand off to main STT
+      wakeWordSvcRef.current?.abort();
+      wakeWordSvcRef.current = null;
+
+      const wordCount = commandPortion
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length;
+
+      if (wordCount >= 3) {
+        // Complete command was captured in the same utterance — send directly
+        isProcessingRef.current = true;
+        useAgentStore.getState().setTranscript(commandPortion);
+        useAgentStore.getState().setIsOpen(true);
+        useAgentStore.getState().appendUserMessage(commandPortion);
+        useAgentStore.getState().setTranscript('');
+        void callClaudeLoop();
+      } else {
+        // Partial or no command — start main STT; prepend any prefix
+        startMainListening(commandPortion);
+      }
+    },
+    [callClaudeLoop, startMainListening],
+  );
+
+  handleWakeWordRef.current = handleWakeWord;
+
+  // ─── Text command (typed input) ───────────────────────────────────────────
 
   const sendTextCommand = useCallback(
     async (text: string) => {
@@ -187,46 +258,79 @@ export const useAgentOrchestrator = () => {
     [callClaudeLoop],
   );
 
+  // ─── Toggle standby (wake word always-on mode) ────────────────────────────
+
+  const toggleStandby = useCallback(() => {
+    const { isStandbyMode, status } = useAgentStore.getState();
+    const newMode = !isStandbyMode;
+    useAgentStore.getState().setStandbyMode(newMode);
+
+    if (newMode) {
+      // Stop any active main STT and arm wake word
+      mainSttRef.current?.stop();
+      mainSttRef.current = null;
+      const svc = createWakeWordService(
+        (cmd) => handleWakeWordRef.current(cmd),
+        () => {
+          /* ignore */
+        },
+      );
+      const { currentLanguage } = useAgentStore.getState();
+      svc.setLanguage(currentLanguage);
+      svc.start();
+      wakeWordSvcRef.current = svc;
+      useAgentStore.getState().setStatus('standby');
+    } else {
+      // Disarm wake word
+      wakeWordSvcRef.current?.abort();
+      wakeWordSvcRef.current = null;
+      if (status === 'standby') {
+        useAgentStore.getState().setStatus('idle');
+      }
+    }
+  }, []);
+
   // ─── Mic button toggle ────────────────────────────────────────────────────
 
   const toggleListening = useCallback(() => {
     const { status } = useAgentStore.getState();
 
-    if (status === 'idle') {
-      // Start listening directly — no wake word
+    if (status === 'standby') {
+      // Manual override: stop wake word, start full listening
+      wakeWordSvcRef.current?.abort();
+      wakeWordSvcRef.current = null;
+      startMainListening();
+    } else if (status === 'idle') {
       startMainListening();
     } else if (status === 'starting') {
-      // Clicked stop before capture started — cancel and return to idle
       mainSttRef.current?.stop();
       mainSttRef.current = null;
-      useAgentStore.getState().setStatus('idle');
+      returnToBaseState();
     } else if (status === 'listening') {
       if (mainSttRef.current) {
-        // Tap to send — immediately fire onFinal with whatever was captured so far
         mainSttRef.current.stopAndSend();
       } else {
-        // Recognition ref is gone (failed to start) — recover
-        useAgentStore.getState().setStatus('idle');
+        returnToBaseState();
       }
     } else if (status === 'confirming') {
-      // Tap mic while confirming → submit (same as the Submit button)
       mainSttRef.current?.confirmSend();
     } else {
-      // Turn off everything (processing, error)
+      // processing / error — cancel everything
       mainSttRef.current?.stop();
       mainSttRef.current = null;
       isProcessingRef.current = false;
-      useAgentStore.getState().setStatus('idle');
       useAgentStore.getState().setTranscript('');
       useAgentStore.getState().setInterimTranscript('');
+      returnToBaseState();
     }
-  }, [startMainListening]);
+  }, [startMainListening, returnToBaseState]);
 
-  // ─── Sync language changes ────────────────────────────────────────────────
+  // ─── Sync language to active services ────────────────────────────────────
 
   const currentLanguage = useAgentStore((s) => s.currentLanguage);
   useEffect(() => {
     mainSttRef.current?.setLanguage(currentLanguage);
+    wakeWordSvcRef.current?.setLanguage(currentLanguage);
   }, [currentLanguage]);
 
   // ─── Cleanup on unmount ───────────────────────────────────────────────────
@@ -235,8 +339,10 @@ export const useAgentOrchestrator = () => {
     return () => {
       mainSttRef.current?.stop();
       mainSttRef.current = null;
+      wakeWordSvcRef.current?.abort();
+      wakeWordSvcRef.current = null;
     };
   }, []);
 
-  return { isSupported, toggleListening, sendTextCommand };
+  return { isSupported, toggleListening, sendTextCommand, toggleStandby };
 };

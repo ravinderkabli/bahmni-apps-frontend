@@ -1,6 +1,7 @@
 import {
   createPatient,
   getIdentifierData,
+  getPersonAttributeTypes,
 } from '@bahmni/services';
 import { RegisterPatientInput, ToolResult } from '../types/agentTypes';
 import { getFhirPatient } from '../services/fhirPatientService';
@@ -18,8 +19,16 @@ export const registerPatient = async (
   input: RegisterPatientInput,
 ): Promise<ToolResult> => {
   try {
-    const { prefixes, sourcesByPrefix, primaryIdentifierTypeUuid } =
-      await getIdentifierData();
+    const [{ prefixes, sourcesByPrefix, primaryIdentifierTypeUuid }, rawAttributeTypes] =
+      await Promise.all([getIdentifierData(), getPersonAttributeTypes()]);
+
+    const attributeList = Array.isArray(rawAttributeTypes)
+      ? rawAttributeTypes
+      : ((rawAttributeTypes as unknown as { results?: unknown[] }).results ?? []);
+    const phoneAttributeTypeUuid =
+      (attributeList as Array<{ uuid: string; name?: string }>)
+        .find((a) => a.name?.toLowerCase().replace(/\s/g, '') === 'phonenumber')
+        ?.uuid ?? null;
 
     if (!primaryIdentifierTypeUuid) {
       return {
@@ -63,14 +72,10 @@ export const registerPatient = async (
           addresses: input.address
             ? [{ address1: input.address }]
             : undefined,
-          attributes: input.phoneNumber
-            ? [
-                {
-                  attributeType: { uuid: '' }, // placeholder — phone attribute type resolved at runtime
-                  value: input.phoneNumber,
-                },
-              ]
-            : [],
+          attributes:
+            input.phoneNumber && phoneAttributeTypeUuid
+              ? [{ attributeType: { uuid: phoneAttributeTypeUuid }, value: input.phoneNumber }]
+              : [],
         },
         identifiers: [
           {
@@ -84,11 +89,6 @@ export const registerPatient = async (
       },
       relationships: [],
     };
-
-    // Remove phone attribute placeholder if no phone provided (attributes array is empty)
-    if (!input.phoneNumber) {
-      payload.patient.person.attributes = [];
-    }
 
     const response = await createPatient(payload);
     const patientUuid = response.patient.uuid;
@@ -114,9 +114,10 @@ export const registerPatient = async (
       },
     };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Patient registration failed',
-    };
+    const message =
+      err instanceof Error ? err.message : typeof err === 'string' ? err : 'Patient registration failed';
+    // eslint-disable-next-line no-console
+    console.error('[registerPatient] failed:', err);
+    return { success: false, error: message };
   }
 };

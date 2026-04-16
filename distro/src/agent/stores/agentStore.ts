@@ -33,6 +33,8 @@ export interface AgentState {
   onConfirmContinue: (() => void) | null;
   /** Called by ApiKeyModal after the key is saved, to re-run the pending command */
   onApiKeyConfirmed: (() => void) | null;
+  /** Whether always-on wake word standby mode is enabled */
+  isStandbyMode: boolean;
 
   setStatus: (status: AgentStatus) => void;
   setIsOpen: (open: boolean) => void;
@@ -51,6 +53,7 @@ export interface AgentState {
   setConfirmCallbacks: (onSubmit: () => void, onContinue: () => void) => void;
   clearConfirmCallbacks: () => void;
   setApiKeyConfirmedCallback: (cb: (() => void) | null) => void;
+  setStandbyMode: (on: boolean) => void;
   resetConversation: () => void;
 }
 
@@ -79,7 +82,7 @@ const loadApiKeyFromConfig = async (): Promise<string | null> => {
   }
 };
 
-export const useAgentStore = create<AgentState>((set, get) => ({
+export const useAgentStore = create<AgentState>((set) => ({
   status: 'idle',
   isOpen: true,
   transcript: '',
@@ -95,6 +98,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   onConfirmSubmit: null,
   onConfirmContinue: null,
   onApiKeyConfirmed: null,
+  isStandbyMode: false,
 
   setStatus: (status) => set({ status }),
   setIsOpen: (isOpen) => set({ isOpen }),
@@ -165,6 +169,8 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     set({ onConfirmSubmit: null, onConfirmContinue: null }),
 
   setApiKeyConfirmedCallback: (onApiKeyConfirmed) => set({ onApiKeyConfirmed }),
+
+  setStandbyMode: (isStandbyMode) => set({ isStandbyMode }),
 
   resetConversation: () =>
     set({

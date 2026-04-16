@@ -17,6 +17,7 @@ export interface Recommendation {
   guideline_reference: string;
   evidence_level: string;
   contraindication_check?: string | null;
+  safety_warning?: string | null;
 }
 
 export interface DataGap {
@@ -41,6 +42,13 @@ export interface InsightsResponse {
     guidelines_version: string;
     disclaimer: string;
   };
+  guidelines_used?: string[];
+  llm_stats?: {
+    input_tokens: number;
+    output_tokens: number;
+    latency_ms: number;
+    model: string;
+  };
 }
 
 export interface InsightsStreamEvent {
@@ -59,10 +67,30 @@ export interface InsightsStreamEvent {
   code?: number;
 }
 
+export interface DoctorConfig {
+  ai_enabled: boolean;
+  mapped_specialties: string[];
+}
+
+export const fetchDoctorConfig = async (
+  doctorUuid: string,
+): Promise<DoctorConfig | null> => {
+  try {
+    const res = await fetch(
+      `/bahmni-ai/api/v1/config?doctor_uuid=${doctorUuid}`,
+    );
+    if (!res.ok) return null;
+    return res.json() as Promise<DoctorConfig>;
+  } catch {
+    return null;
+  }
+};
+
 export const streamInsights = (
   patientUuid: string,
   doctorUuid: string,
   encounterUuid: string,
+  specialty: string | null,
   onEvent: (event: InsightsStreamEvent) => void,
 ): EventSource => {
   const params = new URLSearchParams({
@@ -70,6 +98,7 @@ export const streamInsights = (
     doctor_uuid: doctorUuid,
     encounter_uuid: encounterUuid,
   });
+  if (specialty) params.set('specialty', specialty);
   const url = `/bahmni-ai/api/v1/insights/stream?${params.toString()}`;
   const es = new EventSource(url);
 
@@ -93,6 +122,35 @@ export const streamInsights = (
   };
 
   return es;
+};
+
+export const submitFeedback = async (
+  requestId: string,
+  recommendationId: string,
+  doctorUuid: string,
+  patientUuid: string,
+  feedbackType: 'positive' | 'override',
+  overrideReason?: string,
+  comment?: string,
+): Promise<void> => {
+  try {
+    await fetch('/bahmni-ai/api/v1/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        request_id: requestId,
+        recommendation_id: recommendationId,
+        doctor_uuid: doctorUuid,
+        patient_uuid: patientUuid,
+        encounter_uuid: 'dashboard-session',
+        feedback_type: feedbackType,
+        override_reason: overrideReason,
+        comment: comment,
+      }),
+    });
+  } catch {
+    // fire-and-forget
+  }
 };
 
 export const askInsightsQuestion = async (

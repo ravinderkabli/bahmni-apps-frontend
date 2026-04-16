@@ -3,6 +3,23 @@
 @use '@carbon/react/scss/colors' as *;
 @use '@carbon/react/scss/theme' as *;
 
+// ── Standby pulse animation ──────────────────────────────────────────────────
+
+@keyframes standbyPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes standbyRingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 162, 164, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(0, 162, 164, 0); }
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(218, 30, 40, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(218, 30, 40, 0); }
+}
+
 .panel {
   position: fixed;
   bottom: $spacing-07;
@@ -27,6 +44,13 @@
   background-color: $layer-01;
   border-bottom: 1px solid $border-subtle-00;
   flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+// Teal tint when standby is active
+.headerStandby {
+  background-color: $teal-10;
+  border-bottom-color: $teal-30;
 }
 
 .title {
@@ -138,6 +162,117 @@
   font-style: italic;
 }
 
+// ── Standby tag pulsing dot ──────────────────────────────────────────────────
+
+.standbyTag {
+  display: inline-flex !important;
+  align-items: center;
+  gap: $spacing-02;
+}
+
+.standbyDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: $teal-50;
+  animation: standbyPulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+// ── Standby toggle button active state ───────────────────────────────────────
+
+.standbyToggleActive {
+  color: $teal-60 !important;
+  background-color: $teal-10 !important;
+}
+
+// ── Standby hero (empty state when standby is armed) ─────────────────────────
+
+.standbyHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-04;
+  padding: $spacing-07 $spacing-05 $spacing-05;
+  text-align: center;
+}
+
+.standbyRing {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background-color: $teal-10;
+  border: 2px solid $teal-30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $teal-60;
+  animation: standbyRingPulse 2.2s ease-in-out infinite;
+}
+
+.standbyHeroTitle {
+  @include type-style('heading-compact-01');
+  color: $teal-70;
+  margin: 0;
+}
+
+.standbyHeroHint {
+  @include type-style('body-compact-01');
+  color: $text-secondary;
+  margin: 0;
+
+  strong {
+    color: $teal-60;
+  }
+}
+
+.standbyExamples {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  width: 100%;
+
+  code {
+    @include type-style('code-01');
+    font-size: 0.7rem;
+    background-color: $layer-01;
+    border: 1px solid $border-subtle-00;
+    border-radius: 0.25rem;
+    padding: $spacing-02 $spacing-03;
+    color: $text-secondary;
+    text-align: left;
+    display: block;
+  }
+}
+
+// ── Live streaming transcript box ─────────────────────────────────────────────
+
+.liveTranscriptBox {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  padding: $spacing-03 $spacing-04;
+  background-color: $layer-01;
+  border: 1px solid $border-subtle-00;
+  border-left: 3px solid $red-50;
+  border-radius: 0 0.5rem 0.5rem 0;
+  animation: fadeIn 0.15s ease;
+}
+
+.liveLabel {
+  @include type-style('helper-text-01');
+  color: $text-secondary;
+  font-weight: 600;
+}
+
+.liveTranscriptText {
+  @include type-style('body-compact-01');
+  margin: 0;
+  line-height: 1.5;
+  min-height: 1.2em;
+}
+
 // ── Confirming state ─────────────────────────────────────────────────────────
 
 .confirmRow {
@@ -177,6 +312,11 @@
   :global(.cds--text-input-wrapper) {
     flex: 1;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 // ── Inline mic button ─────────────────────────────────────────────────────────
@@ -220,12 +360,14 @@
   }
 }
 
-@keyframes micPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(218, 30, 40, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(218, 30, 40, 0);
+// Standby mic button — teal outline style (passive, not alarming)
+.micBtnStandby {
+  background-color: transparent;
+  border: 2px solid $teal-40;
+  color: $teal-60;
+
+  &:hover:not(:disabled) {
+    background-color: $teal-10;
+    border-color: $teal-60;
   }
 }

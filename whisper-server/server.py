@@ -22,7 +22,7 @@ import os
 
 app = Flask(__name__)
 # Allow requests from the Bahmni dev server
-CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://localhost", "https://127.0.0.1"])
 
 # Load model once at startup — 'small' is fast and accurate enough for clinical use
 # Change to 'medium' for better accuracy at the cost of speed
