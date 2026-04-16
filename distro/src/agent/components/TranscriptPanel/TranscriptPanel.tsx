@@ -10,6 +10,7 @@ import {
 } from '@carbon/icons-react';
 import { Tag, TextInput } from '@carbon/react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAgentStore } from '../../stores/agentStore';
 import styles from './TranscriptPanel.module.scss';
 
@@ -19,6 +20,53 @@ interface TranscriptPanelProps {
   onToggleStandby: () => void;
   isSTTSupported: boolean;
 }
+
+const URL_REGEX = /(https?:\/\/[^\s)]+)/g;
+
+const renderWithLinks = (
+  text: string,
+  navigate: ReturnType<typeof useNavigate>,
+) => {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) => {
+    if (!new RegExp(URL_REGEX.source).test(part)) return part;
+
+    try {
+      const url = new URL(part);
+      if (url.origin === window.location.origin) {
+        // Internal URL — SPA navigation, no full page reload
+        // Strip the basename (/bahmni-new) before calling navigate so
+        // React Router doesn't prepend it a second time.
+        const fullPath = url.pathname + url.search + url.hash;
+        const basename = '/bahmni-new';
+        const internalPath = fullPath.startsWith(basename)
+          ? fullPath.slice(basename.length) || '/'
+          : fullPath;
+        return (
+          <a
+            key={i}
+            href={part}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(internalPath);
+            }}
+          >
+            {part}
+          </a>
+        );
+      }
+    } catch {
+      // not a valid URL — fall through to plain text
+    }
+
+    // External URL — open in new tab
+    return (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer">
+        {part}
+      </a>
+    );
+  });
+};
 
 const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   onSendText,
@@ -42,6 +90,7 @@ const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
     isStandbyMode,
   } = useAgentStore();
 
+  const navigate = useNavigate();
   const [inputText, setInputText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -297,7 +346,7 @@ const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 if (!text) return null;
                 return (
                   <div key={key} className={styles.assistantMessage}>
-                    <span className={styles.bubble}>{text}</span>
+                    <span className={styles.bubble}>{renderWithLinks(text, navigate)}</span>
                   </div>
                 );
               }

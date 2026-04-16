@@ -238,4 +238,94 @@ Configured in `.prettierrc.json`:
 - [Bahmni Documentation](https://bahmni.atlassian.net/wiki/spaces/BAH/overview)
 
 ---
-*Last updated: 2026-02-19*
+
+## GIDS Branch — Agent Bahmni & Clinical Insights
+
+The `GIDS` branch adds two AI features on top of standard Bahmni. This section covers the extra setup steps required.
+
+### Additional Prerequisites
+
+| Requirement | For what | Notes |
+|---|---|---|
+| **Anthropic API key** (`sk-ant-...`) | Agent Bahmni + Ask Questions | [console.anthropic.com](https://console.anthropic.com) |
+| **`bahmni-ai` Python service** | Clinical Insights panel | Separate repo — see below |
+| Python 3.11+ + ffmpeg | Local Whisper STT (optional) | Only needed for offline voice input |
+
+### Step 1 — Anthropic API key
+
+Open `ai-config.json` in the project root and set your key:
+
+```json
+{
+  "anthropicApiKey": "sk-ant-..."
+}
+```
+
+> **`ai-config.json` is listed in `.gitignore` — never commit a real key.** If you accidentally do, rotate it immediately at [console.anthropic.com](https://console.anthropic.com).
+
+The quickest way is the interactive setup script, which prompts for the key and writes it for you:
+
+```bash
+./setup.sh
+```
+
+### Step 2 — `bahmni-ai` backend (Clinical Insights)
+
+Clinical Insights requires a separate Python service. Clone it alongside `bahmni-apps-frontend`:
+
+```bash
+git clone https://github.com/Bahmni/bahmni-ai.git
+cd bahmni-ai
+# Follow the README there for Python env setup and any required config
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8090
+```
+
+The webpack dev server proxies `/bahmni-ai` → `http://localhost:8090`. If the service is not running, the Clinical Insights panel shows "Connection error" — Agent Bahmni and voice tools are unaffected.
+
+### Step 3 — Whisper STT server (optional)
+
+Whisper provides local, offline speech-to-text as an alternative to Chrome's Web Speech API (which is often blocked on hospital networks).
+
+```bash
+cd whisper-server
+pip install -r requirements.txt
+WHISPER_MODEL=small python server.py   # tiny / small / medium / large
+```
+
+Starts on `http://localhost:8765`. The dev server proxies `/whisper-stt` to it automatically. Skip this step to use browser STT instead.
+
+### Step 4 — Start the frontend
+
+```bash
+yarn dev
+```
+
+All proxies (`/openmrs`, `/bahmni_config`, `/bahmni-ai`, `/whisper-stt`, `/anthropic-proxy`) are handled by the webpack dev server. No separate proxy process is needed for development.
+
+### GIDS Known Issues
+
+These bugs exist in the `GIDS` branch and affect development. They do not affect the `main` branch.
+
+| Issue | Impact | Workaround / Fix location |
+|---|---|---|
+| **"New Consultation" crash** — `<ClinicalInsights />` in `ConsultationPage.tsx:270` has no error boundary; any render error takes down the full consultation page | Page crash on consultation load if `bahmni-ai` is unreachable or throws | Wrap `<ClinicalInsights />` in an `<ErrorBoundary>` in `ConsultationPage.tsx:270` |
+| **Agent `start_encounter` wrong route** — navigates to `/clinical/<uuid>/consultation` but the router only matches `/:patientUuid` (single segment) | Agent opens a blank page instead of consultation | Fix `targetPath` in `distro/src/agent/tools/startEncounterTool.ts:43` to `/clinical/<uuid>` |
+| **Deep imports from `@bahmni/clinical-app` not in exports map** — `addDiagnosisTool` and `addMedicationTool` import from `@bahmni/clinical-app/stores/...` which is not exported | Agent diagnosis/medication tools silently broken in production builds; `yarn typecheck` reports module-not-found errors | Works in `yarn dev` via webpack alias. Fix: add `exports` entries in `apps/clinical/package.json` or move shared Zustand stores to a separate package |
+| **`yarn typecheck` fails for `distro/`** | TypeScript check fails globally | Known — does not affect `yarn dev` or `@bahmni/clinical`/`@bahmni/registration`. Run `nx typecheck @bahmni/clinical` to check only the clinical app |
+
+### Why deep imports work in dev but not production
+
+`distro/webpack.config.js` defines a dev-only alias:
+
+```js
+resolve: {
+  alias: isDevelopment ? {
+    '@bahmni/clinical-app': join(__dirname, '../apps/clinical/src'),
+  } : {},
+},
+```
+
+In development, `@bahmni/clinical-app/stores/conditionsAndDiagnosesStore` resolves to `apps/clinical/src/stores/conditionsAndDiagnosesStore`. In production builds the alias is empty, so only the paths listed in `apps/clinical/package.json` `exports` field are accessible.
+
+---
+*Last updated: 2026-04-16*

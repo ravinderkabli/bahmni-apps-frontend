@@ -1,11 +1,12 @@
-import { Button } from '@bahmni/design-system';
+import { Button, Modal } from '@bahmni/design-system';
 import { useTranslation } from '@bahmni/services';
 import {
   useActivePractitioner,
   useHasPrivilege,
   CONSULTATION_PAD_PRIVILEGES,
 } from '@bahmni/widgets';
-import React from 'react';
+import React, { useState } from 'react';
+import ClinicalInsights from '../clinicalInsights/ClinicalInsights';
 import { useEncounterSession } from '../../hooks/useEncounterSession';
 import styles from './styles/PatientHeader.module.scss';
 
@@ -33,24 +34,45 @@ const ConsultationActionButton: React.FC<ConsultationActionButtonProps> = ({
   const canAddEncounter = useHasPrivilege(
     CONSULTATION_PAD_PRIVILEGES.ENCOUNTER,
   );
+  const [showInsightsModal, setShowInsightsModal] = useState(false);
 
   if (!canAddEncounter) {
     return null;
   }
   return (
-    <Button
-      className={styles.newConsultationButton}
-      size="md"
-      disabled={isActionAreaVisible || isLoading}
-      onClick={() => setIsActionAreaVisible(!isActionAreaVisible)}
-      data-testid="consultation-action-button"
-    >
-      {isActionAreaVisible
-        ? t('CONSULTATION_ACTION_IN_PROGRESS')
-        : editActiveEncounter
-          ? t('CONSULTATION_ACTION_EDIT')
-          : t('CONSULTATION_ACTION_NEW')}
-    </Button>
+    <div className={styles.buttonGroup}>
+      <Button
+        kind="secondary"
+        size="md"
+        onClick={() => setShowInsightsModal(true)}
+        data-testid="generate-insights-button"
+        className={styles.generateInsightsButton}
+      >
+        {t('CLINICAL_INSIGHTS_GENERATE_BUTTON')}
+      </Button>
+      <Button
+        className={styles.newConsultationButton}
+        size="md"
+        disabled={isActionAreaVisible || isLoading}
+        onClick={() => setIsActionAreaVisible(!isActionAreaVisible)}
+        data-testid="consultation-action-button"
+      >
+        {isActionAreaVisible
+          ? t('CONSULTATION_ACTION_IN_PROGRESS')
+          : editActiveEncounter
+            ? t('CONSULTATION_ACTION_EDIT')
+            : t('CONSULTATION_ACTION_NEW')}
+      </Button>
+      <Modal
+        open={showInsightsModal}
+        passiveModal
+        modalHeading={t('CLINICAL_INSIGHTS_TITLE')}
+        onRequestClose={() => setShowInsightsModal(false)}
+        size="lg"
+      >
+        {showInsightsModal && <ClinicalInsights autoGenerate inModal />}
+      </Modal>
+    </div>
   );
 };
 

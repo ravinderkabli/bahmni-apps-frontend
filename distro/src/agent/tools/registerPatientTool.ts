@@ -96,10 +96,13 @@ export const registerPatient = async (
     // Best-effort: enrich result with FHIR2 R4 data (official name, identifiers, telecom)
     const fhirPatient = await getFhirPatient(patientUuid);
 
+    const patientUrl = `${window.location.origin}/bahmni-new/registration/patient/${patientUuid}`;
+
     return {
       success: true,
       data: {
         patientUuid,
+        patientUrl,
         displayName: response.patient.display,
         identifier: response.patient.identifiers?.[0]?.identifier ?? '',
         fhir: fhirPatient

@@ -102,14 +102,20 @@ export const streamInsights = (
   const url = `/bahmni-ai/api/v1/insights/stream?${params.toString()}`;
   const es = new EventSource(url);
 
+  let receivedServerEvent = false;
+
   es.onmessage = (e: MessageEvent<string>) => {
     if (e.data === '[DONE]') {
+      receivedServerEvent = true;
       onEvent({ event: 'done' });
       es.close();
       return;
     }
     try {
       const parsed = JSON.parse(e.data) as InsightsStreamEvent;
+      if (parsed.event === 'error' || parsed.event === 'done') {
+        receivedServerEvent = true;
+      }
       onEvent(parsed);
     } catch {
       // ignore non-JSON frames
@@ -117,7 +123,9 @@ export const streamInsights = (
   };
 
   es.onerror = () => {
-    onEvent({ event: 'error', message: 'Connection error', code: 503 });
+    if (!receivedServerEvent) {
+      onEvent({ event: 'error', message: 'Connection error', code: 503 });
+    }
     es.close();
   };
 

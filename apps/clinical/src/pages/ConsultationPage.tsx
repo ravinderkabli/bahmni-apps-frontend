@@ -267,7 +267,7 @@ const ConsultationPage: React.FC = () => {
               />
               {renderContextInformation()}
             </div>
-            <ClinicalInsights />
+            {/* <ClinicalInsights /> */}
             <DashboardContainer
               sections={filteredDashboardConfig!.sections}
               activeItemId={activeItemId}

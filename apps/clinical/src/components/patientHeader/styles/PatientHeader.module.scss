@@ -17,9 +17,19 @@
   padding-block: $spacing-04 !important;
 }
 
+.buttonGroup {
+  display: flex;
+  gap: $spacing-03;
+  align-items: center;
+}
+
 .newConsultationButton {
   border-radius: 2px !important;
   padding-right: $spacing-05 !important;
+}
+
+.generateInsightsButton {
+  border-radius: 2px !important;
 }
 
 @include breakpoint-down(lg) {

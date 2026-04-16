@@ -28,6 +28,11 @@ $bahmni-orange: #e8a000;
   padding-top: $spacing-06;
 }
 
+// When rendered inside the patient header modal, no outer padding needed
+.wrapperInModal {
+  padding: 0;
+}
+
 @include breakpoint-down(lg) {
   .wrapper {
     padding-inline: calc($spacing-01 + $spacing-02);
@@ -44,6 +49,14 @@ $bahmni-orange: #e8a000;
   max-height: 28rem;
   display: flex;
   flex-direction: column;
+}
+
+// Inside the patient header modal: fill available height, no border (modal provides chrome)
+.cardInModal {
+  border: none;
+  border-radius: 0;
+  max-height: none;
+  flex: 1;
 }
 
 // ── Header bar — teal Bahmni section header ─────────────────────────────────

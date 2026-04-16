@@ -5,6 +5,7 @@ import {
   Header,
   Icon,
   ICON_SIZE,
+  Loading,
 } from '@bahmni/design-system';
 import {
   BAHMNI_HOME_PATH,
@@ -81,6 +82,7 @@ const PatientRegister = () => {
     relationshipsInitialData,
     initialDobEstimated,
     metadata: initialMetadata,
+    isLoading: isPatientLoading,
   } = usePatientDetails({
     patientUuid: patientUuidFromUrl,
   });
@@ -188,6 +190,10 @@ const PatientRegister = () => {
       return null;
     }
   };
+
+  if (patientUuidFromUrl && isPatientLoading) {
+    return <Loading />;
+  }
 
   const shouldShowActions = metadata?.patientUuid || patientUuidFromUrl == null;
 
