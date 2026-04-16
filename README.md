@@ -116,6 +116,14 @@ This branch adds a voice-driven AI assistant that lets clinical staff register p
 
 ### Setup
 
+Run the interactive setup script for a guided first-time setup:
+
+```bash
+./setup.sh
+```
+
+It will prompt for your API key, install frontend dependencies, and optionally configure the Whisper STT server. You can also follow the manual steps below.
+
 #### 1. Add your Anthropic API key
 
 Open `ai-config.json` in the project root and replace the placeholder with your key:
