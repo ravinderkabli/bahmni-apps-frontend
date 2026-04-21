@@ -57,7 +57,7 @@ historyApiFallback: {
       ],
       setupMiddlewares: (middlewares, devServer) => {
         // Serve the local AI config file (contains Anthropic API key for demo)
-        devServer.app.get('/ai-config', (_req, res) => {
+        devServer.app.get('/anthropic-proxy/ai-config', (_req, res) => {
           const configPath = join(__dirname, '..', 'ai-config.json');
           try {
             if (fs.existsSync(configPath)) {

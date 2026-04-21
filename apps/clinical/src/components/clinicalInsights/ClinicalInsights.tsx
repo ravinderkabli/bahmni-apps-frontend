@@ -189,7 +189,7 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
       setApiKey(stored);
       return;
     }
-    fetch('/ai-config')
+    fetch('/anthropic-proxy/ai-config')
       .then((res) => res.json())
       .then((data: { anthropicApiKey?: string | null }) => {
         if (

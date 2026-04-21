@@ -71,7 +71,7 @@ const readApiKeyFromStorage = (): string | null => {
  */
 const loadApiKeyFromConfig = async (): Promise<string | null> => {
   try {
-    const res = await fetch('/ai-config');
+    const res = await fetch('/anthropic-proxy/ai-config');
     if (!res.ok) return null;
     const data = (await res.json()) as { anthropicApiKey?: string | null };
     const key = data.anthropicApiKey;

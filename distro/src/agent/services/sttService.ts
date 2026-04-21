@@ -156,7 +156,7 @@ export const createSpeechService = (
     formData.append('language', currentLang);
 
     try {
-      const response = await fetch(`${WHISPER_SERVER_URL}/transcribe`, {
+      const response = await fetch(`/whisper-stt/transcribe`, {
         method: 'POST',
         body: formData,
         signal: abortController.signal,
