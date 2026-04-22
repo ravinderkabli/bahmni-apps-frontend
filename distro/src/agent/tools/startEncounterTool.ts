@@ -40,7 +40,7 @@ export const startEncounter = async (
 
     // 3. Navigate to consultation page if not already there
     const currentPath = window.location.pathname;
-    const targetPath = `/clinical/${input.patientUuid}/consultation`;
+    const targetPath = `/clinical/${input.patientUuid}`;
 
     if (!currentPath.includes(input.patientUuid)) {
       navigate(targetPath);

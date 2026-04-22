@@ -236,11 +236,6 @@ const PatientRegister = () => {
     }
   };
 
-  if (patientUuidFromUrl && isPatientLoading) {
-    return <Loading />;
-  }
-
-  const shouldShowActions = metadata?.patientUuid || patientUuidFromUrl == null;
   const refs = useMemo<FormControlRefs>(
     () => ({
       profileRef: patientProfileRef,
@@ -281,6 +276,12 @@ const PatientRegister = () => {
     }),
     [shouldShowAdditionalIdentifiers, relationshipTypes],
   );
+
+  if (patientUuidFromUrl && isPatientLoading) {
+    return <Loading />;
+  }
+
+  const shouldShowActions = metadata?.patientUuid || patientUuidFromUrl == null;
 
   const breadcrumbs = [
     {

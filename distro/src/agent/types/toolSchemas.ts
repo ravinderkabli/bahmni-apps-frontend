@@ -65,6 +65,22 @@ export const AGENT_TOOLS: AnthropicToolDefinition[] = [
     },
   },
   {
+    name: 'start_consultation',
+    description:
+      'Open the New Consultation page for the current patient. ONLY call this after asking "Shall I start a new consultation?" and receiving an affirmative response (yes/haan/ok/sure). Never call without explicit user confirmation. No patientUuid is required if a patient is already active — the tool resolves it automatically from context. Only supply patientUuid when you have it from a prior search_patient result.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patientUuid: {
+          type: 'string',
+          description:
+            'UUID of the patient. Omit if a patient is already active in the session.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'add_diagnosis',
     description:
       'Add a clinical diagnosis to the current consultation. Call once per diagnosis. The system will resolve the clinical term to an OpenMRS concept automatically.',

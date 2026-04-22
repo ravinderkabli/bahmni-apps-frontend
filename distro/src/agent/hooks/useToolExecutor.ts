@@ -3,6 +3,7 @@ import { ToolUseContentBlock, ToolResult } from '../types/agentTypes';
 import { registerPatient } from '../tools/registerPatientTool';
 import { searchPatient } from '../tools/searchPatientTool';
 import { startEncounter } from '../tools/startEncounterTool';
+import { startConsultation } from '../tools/startConsultationTool';
 import { addDiagnosis } from '../tools/addDiagnosisTool';
 import { addMedication } from '../tools/addMedicationTool';
 import { addObservation } from '../tools/addObservationTool';
@@ -11,6 +12,7 @@ import type {
   RegisterPatientInput,
   SearchPatientInput,
   StartEncounterInput,
+  StartConsultationInput,
   AddDiagnosisInput,
   AddMedicationInput,
   AddObservationInput,
@@ -34,13 +36,16 @@ export const useToolExecutor = (): UseToolExecutorReturn => {
 
     switch (name) {
       case 'register_patient':
-        return registerPatient(input as RegisterPatientInput);
+        return registerPatient(input as RegisterPatientInput, navigate);
 
       case 'search_patient':
         return searchPatient(input as SearchPatientInput);
 
       case 'start_encounter':
         return startEncounter(input as StartEncounterInput, navigate);
+
+      case 'start_consultation':
+        return startConsultation(input as StartConsultationInput, navigate);
 
       case 'add_diagnosis':
         return addDiagnosis(input as AddDiagnosisInput);

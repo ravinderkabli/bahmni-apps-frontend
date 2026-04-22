@@ -51,10 +51,10 @@ const RegistrationApp: React.FC = () => {
             <PersonAttributesProvider>
               <UserPrivilegeProvider>
                 <Routes>
-                  <Route path="/search" element={<PatientSearchPage />} />
+                  <Route path="search" element={<PatientSearchPage />} />
                   <Route path="patient/new" element={<PatientRegister />} />
                   <Route
-                    path="/patient/:patientUuid"
+                    path="patient/:patientUuid"
                     element={<PatientRegister />}
                   />
                 </Routes>

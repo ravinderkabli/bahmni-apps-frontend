@@ -85,6 +85,11 @@ export interface StartEncounterInput {
   encounterTypeName?: string;
 }
 
+export interface StartConsultationInput {
+  /** Optional — tool will resolve from store or URL if absent */
+  patientUuid?: string;
+}
+
 export interface AddDiagnosisInput {
   conceptName: string;
   certainty: 'confirmed' | 'provisional';
