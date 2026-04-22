@@ -1,4 +1,4 @@
-import { Button, Modal } from '@bahmni/design-system';
+import { Button } from '@bahmni/design-system';
 import { useTranslation } from '@bahmni/services';
 import {
   useActivePractitioner,
@@ -63,15 +63,9 @@ const ConsultationActionButton: React.FC<ConsultationActionButtonProps> = ({
             ? t('CONSULTATION_ACTION_EDIT')
             : t('CONSULTATION_ACTION_NEW')}
       </Button>
-      <Modal
-        open={showInsightsModal}
-        passiveModal
-        modalHeading={t('CLINICAL_INSIGHTS_TITLE')}
-        onRequestClose={() => setShowInsightsModal(false)}
-        size="lg"
-      >
-        {showInsightsModal && <ClinicalInsights autoGenerate inModal />}
-      </Modal>
+      {showInsightsModal && (
+        <ClinicalInsights inModal onClose={() => setShowInsightsModal(false)} />
+      )}
     </div>
   );
 };

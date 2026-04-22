@@ -106,20 +106,20 @@ function getKiColorKey(indicator: KeyIndicator): 'Green' | 'Yellow' | 'Red' {
 interface ClinicalInsightsProps {
   autoGenerate?: boolean;
   inModal?: boolean;
+  onClose?: () => void;
 }
 
 const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
   autoGenerate = false,
   inModal = false,
+  onClose,
 }) => {
   const { t } = useTranslation();
   const patientUUID = usePatientUUID();
   const { practitioner } = useActivePractitioner();
 
   const [specialties, setSpecialties] = useState<string[]>([]);
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(
-    null,
-  );
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStage, setCurrentStage] = useState<string>('');
   const [progressPct, setProgressPct] = useState(0);
@@ -247,11 +247,10 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
   useEffect(() => {
     if (!practitioner?.uuid) return;
     fetchDoctorConfig(practitioner.uuid).then((cfg) => {
-      const specialties = cfg?.mapped_specialties?.length
+      const sps = cfg?.mapped_specialties?.length
         ? cfg.mapped_specialties
         : ['diabetes'];
-      setSpecialties(specialties);
-      setSelectedSpecialty((prev) => prev ?? specialties[0]);
+      setSpecialties(sps);
     });
   }, [practitioner?.uuid]);
 
@@ -613,7 +612,7 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
 
-  return (
+  const cardContent = (
     <div className={inModal ? styles.wrapperInModal : styles.wrapper}>
       <div className={`${styles.card} ${inModal ? styles.cardInModal : ''}`}>
         {/* ── Header bar ─────────────────────────────────────────── */}
@@ -623,24 +622,50 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
             <span className={styles.aiBadge}>
               {t('CLINICAL_INSIGHTS_AI_BADGE')}
             </span>
-            {selectedSpecialty && !isGenerating && !hasInsights && (
+            {!inModal && selectedSpecialty && !isGenerating && !hasInsights && (
               <span className={styles.selectedSpecialtyLabel}>
                 {selectedSpecialty.replace(/_/g, ' ').replace('.', ' › ')}
               </span>
             )}
           </div>
-          <Button
-            size="sm"
-            kind="primary"
-            onClick={handleGenerateInsights}
-            disabled={
-              !canGenerate ||
-              isGenerating ||
-              (specialties.length > 1 && !selectedSpecialty)
-            }
-          >
-            {t('CLINICAL_INSIGHTS_GENERATE_BUTTON')}
-          </Button>
+          <div className={styles.headerActions}>
+            {inModal && (
+              <div className={styles.headerSpecialtySelect}>
+                <Select
+                  id="clinical-insights-header-specialty"
+                  labelText=""
+                  hideLabel
+                  size="sm"
+                  value={selectedSpecialty ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setSelectedSpecialty(e.target.value)
+                  }
+                >
+                  <SelectItem
+                    value=""
+                    text={t('CLINICAL_INSIGHTS_SPECIALTY_PLACEHOLDER', {
+                      defaultValue: 'Select speciality…',
+                    })}
+                  />
+                  {specialties.map((sp) => (
+                    <SelectItem
+                      key={sp}
+                      value={sp}
+                      text={sp.replace(/_/g, ' ').replace('.', ' › ')}
+                    />
+                  ))}
+                </Select>
+              </div>
+            )}
+            <Button
+              size="sm"
+              kind="primary"
+              onClick={handleGenerateInsights}
+              disabled={!canGenerate || isGenerating || !selectedSpecialty}
+            >
+              {t('CLINICAL_INSIGHTS_GENERATE_BUTTON')}
+            </Button>
+          </div>
         </div>
 
         {/* ── Body ───────────────────────────────────────────────── */}
@@ -649,48 +674,46 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
           ref={bodyRef}
           onScroll={checkScrollMore}
         >
-          {/* Empty state — specialty selector */}
-          {showEmptyState && (
+          {/* Empty state — specialty selector (standalone mode only; modal uses header dropdown) */}
+          {showEmptyState && !inModal && (
             <div className={styles.emptyState}>
-              {specialties.length > 1 ? (
-                <>
-                  <p className={styles.emptyStateText}>
-                    {t('CLINICAL_INSIGHTS_SELECT_SPECIALTY')}
-                  </p>
-                  <div className={styles.specialtyCards}>
-                    {specialties.map((sp) => (
-                      <button
-                        key={sp}
-                        type="button"
-                        className={`${styles.specialtyCard} ${selectedSpecialty === sp ? styles.specialtyCardSelected : ''}`}
-                        onClick={() => setSelectedSpecialty(sp)}
-                      >
-                        <span className={styles.specialtyCardCheck}>
-                          {selectedSpecialty === sp ? '●' : '○'}
-                        </span>
-                        <span className={styles.specialtyCardName}>
-                          {sp.replace(/_/g, ' ').replace('.', ' › ')}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <Button
-                    kind="primary"
-                    onClick={handleGenerateInsights}
-                    disabled={!canGenerate || (specialties.length > 1 && !selectedSpecialty)}
-                  >
-                    {t('CLINICAL_INSIGHTS_GENERATE_FOR')}{' '}
-                    {selectedSpecialty?.replace(/_/g, ' ').replace('.', ' › ')}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <span className={styles.emptyStateIcon}>&#x1F9E0;</span>
-                  <p className={styles.emptyStateText}>
-                    {t('CLINICAL_INSIGHTS_EMPTY_STATE')}
-                  </p>
-                </>
-              )}
+              <span className={styles.emptyStateIcon}>&#x1F9E0;</span>
+              <p className={styles.emptyStateText}>
+                {t('CLINICAL_INSIGHTS_SELECT_SPECIALTY')}
+              </p>
+              <div className={styles.specialtyDropdown}>
+                <Select
+                  id="clinical-insights-specialty"
+                  labelText={t('CLINICAL_INSIGHTS_SPECIALTY_LABEL', {
+                    defaultValue: 'Speciality',
+                  })}
+                  value={selectedSpecialty ?? ''}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setSelectedSpecialty(e.target.value)
+                  }
+                >
+                  <SelectItem
+                    value=""
+                    text={t('CLINICAL_INSIGHTS_SPECIALTY_PLACEHOLDER', {
+                      defaultValue: 'Select a speciality…',
+                    })}
+                  />
+                  {specialties.map((sp) => (
+                    <SelectItem
+                      key={sp}
+                      value={sp}
+                      text={sp.replace(/_/g, ' ').replace('.', ' › ')}
+                    />
+                  ))}
+                </Select>
+              </div>
+              <Button
+                kind="primary"
+                onClick={handleGenerateInsights}
+                disabled={!canGenerate || !selectedSpecialty}
+              >
+                {t('CLINICAL_INSIGHTS_GENERATE_BUTTON')}
+              </Button>
             </div>
           )}
 
@@ -992,7 +1015,6 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
       {/* API Key modal */}
       <Modal
         open={showApiKeyModal}
-        modalHeading={t('CLINICAL_INSIGHTS_API_KEY_TITLE')}
         primaryButtonText={t('CLINICAL_INSIGHTS_API_KEY_CONFIRM')}
         secondaryButtonText={t('CLINICAL_INSIGHTS_API_KEY_CANCEL')}
         onRequestSubmit={handleApiKeyConfirm}
@@ -1016,6 +1038,22 @@ const ClinicalInsights: React.FC<ClinicalInsightsProps> = ({
       </Modal>
     </div>
   );
+
+  if (inModal) {
+    return (
+      <Modal
+        open
+        passiveModal
+        onRequestClose={onClose}
+        size="lg"
+        className={styles.ownModal}
+      >
+        {cardContent}
+      </Modal>
+    );
+  }
+
+  return cardContent;
 };
 
 export default ClinicalInsights;

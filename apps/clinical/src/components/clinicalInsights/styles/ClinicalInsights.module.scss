@@ -33,6 +33,13 @@ $bahmni-orange: #e8a000;
   padding: 0;
 }
 
+// Self-managed modal — hide Carbon's default header (close button)
+.ownModal {
+  :global(.cds--modal-header) {
+    display: none;
+  }
+}
+
 @include breakpoint-down(lg) {
   .wrapper {
     padding-inline: calc($spacing-01 + $spacing-02);
@@ -91,6 +98,32 @@ $bahmni-orange: #e8a000;
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1;
+}
+
+// ── Header right-side actions group (dropdown + button) ─────────────────────
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+// ── Header specialty dropdown (modal mode) ───────────────────────────────────
+
+.headerSpecialtySelect {
+  // Tighten Carbon's Select vertical padding so it fits the compact teal bar
+  :global(.cds--select-input) {
+    background-color: #fff;
+    color: $bahmni-text;
+    height: 2rem;
+    padding-top: 0;
+    padding-bottom: 0;
+    min-width: 14rem;
+  }
+
+  :global(.cds--select) {
+    margin-bottom: 0;
+  }
 }
 
 // ── Specialty selector ───────────────────────────────────────────────────────
@@ -242,6 +275,11 @@ $bahmni-orange: #e8a000;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 1rem;
   padding: $spacing-01 $spacing-03;
+}
+
+.specialtyDropdown {
+  width: 20rem;
+  text-align: left;
 }
 
 .specialtyCards {

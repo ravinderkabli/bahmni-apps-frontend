@@ -32,6 +32,18 @@
   border-radius: 2px !important;
 }
 
+.insightsModalHeading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-05;
+  flex-wrap: wrap;
+}
+
+.generateInsightsButton {
+  border-radius: 2px !important;
+}
+
+
 @include breakpoint-down(lg) {
   .header {
     flex-direction: column;
